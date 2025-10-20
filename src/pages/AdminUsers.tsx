@@ -25,7 +25,8 @@ const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'TODOS' | 'ADMINISTRADOR' | 'MEDICO' | 'ENFERMERA'>('TODOS');
+  type Filter = 'TODOS' | 'ADMINISTRADOR' | 'MEDICO' | 'ENFERMERA';
+  const [filter, setFilter] = useState<Filter>('TODOS');
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = async () => {
@@ -37,7 +38,7 @@ const AdminUsers = () => {
       const list = (res.data?.users || []) as User[];
       // Filtra fuera pacientes por seguridad
       setUsers(list.filter((u) => (u.role || '').toUpperCase() !== 'PACIENTE'));
-    } catch (e) {
+    } catch {
       setError('No se pudieron cargar los usuarios');
     } finally {
       setLoading(false);
@@ -54,7 +55,7 @@ const AdminUsers = () => {
     try {
       await api.put(`/users/${id}/role`, { role });
       await load();
-    } catch (e) {
+    } catch {
       setError('No fue posible cambiar el rol');
     } finally {
       setSavingId(null);
@@ -63,10 +64,10 @@ const AdminUsers = () => {
 
   const tabs = useMemo(
     () => [
-      { key: 'TODOS', label: 'Todos' },
-      { key: 'ADMINISTRADOR', label: 'Administradores' },
-      { key: 'MEDICO', label: 'Médicos' },
-      { key: 'ENFERMERA', label: 'Enfermeras' },
+      { key: 'TODOS' as Filter, label: 'Todos' },
+      { key: 'ADMINISTRADOR' as Filter, label: 'Administradores' },
+      { key: 'MEDICO' as Filter, label: 'Médicos' },
+      { key: 'ENFERMERA' as Filter, label: 'Enfermeras' },
     ],
     []
   );
@@ -89,13 +90,14 @@ const AdminUsers = () => {
         <button type="button" className="md:hidden mb-4 px-3 py-2 rounded border bg-white" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">Menú</button>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Usuarios</h1>
+          <a href="/dashboard/users/new" className="px-3 py-2 text-sm bg-slate-800 text-white rounded">Nuevo usuario</a>
         </div>
 
         <div className="mt-4 inline-flex bg-white p-1 rounded-full border border-slate-200">
           {tabs.map((t) => (
             <button
               key={t.key}
-              onClick={() => setFilter(t.key as any)}
+              onClick={() => setFilter(t.key)}
               className={`px-4 py-2 rounded-full text-sm ${filter === t.key ? 'bg-slate-800 text-white' : 'text-slate-700'}`}
             >
               {t.label}
@@ -131,9 +133,12 @@ const AdminUsers = () => {
                           {u.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 space-x-2">
                         <select
-                          value={roleOptions.includes(role as any) ? role : 'MEDICO'}
+                          value={(function () {
+                            const isRoleOption = (val: string): val is typeof roleOptions[number] => (roleOptions as readonly string[]).includes(val);
+                            return isRoleOption(role) ? role : 'MEDICO';
+                          })()}
                           onChange={(e) => changeRole(u.id, e.target.value)}
                           disabled={savingId === u.id}
                           className="border rounded px-2 py-1 text-sm"
@@ -142,10 +147,11 @@ const AdminUsers = () => {
                             <option key={r} value={r}>{ROLE_LABEL[r]}</option>
                           ))}
                         </select>
+                        <a href={`/dashboard/users/${u.id}/edit`} className="text-sm px-3 py-1 border rounded inline-block">Editar</a>
                       </td>
-                    </tr>
-                  );
-                })}
+                  </tr>
+                );
+              })}
               </tbody>
             </table>
           </div>
@@ -156,4 +162,3 @@ const AdminUsers = () => {
 };
 
 export default AdminUsers;
-

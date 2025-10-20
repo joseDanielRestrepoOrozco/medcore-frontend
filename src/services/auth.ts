@@ -1,8 +1,8 @@
 import api from './api';
 
-// Payload types
-export type SignUpPayload = { fullname: string; email: string; current_password: string };
-export type LoginPayload = { email: string; current_password: string };
+// Payload types (alineado con backend monolítico)
+export type SignUpPayload = { fullname: string; email: string; currentPassword: string; role?: string };
+export type LoginPayload = { email: string; currentPassword: string };
 export type VerifyEmailPayload = { email: string; verificationCode: string };
 export type ResendVerificationPayload = { email: string };
 

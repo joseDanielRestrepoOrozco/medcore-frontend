@@ -5,10 +5,10 @@ import { useAuth } from '../context/AuthContext';
 type Role = 'admin' | 'patient' | 'medico' | 'ADMINISTRADOR' | 'PACIENTE' | 'MEDICO' | 'ENFERMERA';
 
 const RoleRoute: React.FC<{ allowed: Role[]; children: React.ReactNode }> = ({ allowed, children }) => {
+  // Hooks must not be conditional
+  const { token, user } = useAuth();
   const isAuthDisabled = import.meta.env.VITE_DISABLE_AUTH === 'true';
   if (isAuthDisabled) return <>{children}</>;
-
-  const { token, user } = useAuth();
   if (!token) return <Navigate to="/login" replace />;
 
   const raw = (user as typeof user & { role?: string })?.role;

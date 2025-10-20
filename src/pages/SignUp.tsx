@@ -53,7 +53,7 @@ const SignUp = () => {
     try {
       // La creación de cuenta es para Administradores. El backend asigna rol por defecto
       // o puede aceptarlo en el payload si está soportado.
-      await signUp({ ...data, role: 'ADMINISTRADOR' } as any);
+      await signUp({ ...data, role: 'ADMINISTRADOR' });
       navigate('/verify', { state: { email: data.email } });
       form.reset();
       sessionStorage.removeItem('signup_access');

@@ -43,7 +43,7 @@ const Login = () => {
     try {
       const res = await login({
         email: data.email,
-        current_password: data.currentPassword,
+        currentPassword: data.currentPassword,
       });
       const token = res.data.token;
       const user = res.data.user;
@@ -168,6 +168,11 @@ const Login = () => {
             className="text-slate-800 font-semibold hover:underline"
           >
             Solicitar registro
+          </a>
+        </p>
+        <p className="mt-2 text-center">
+          <a href="/forgot-password" className="text-sm text-blue-700 hover:underline">
+            Olvidé mi contraseña
           </a>
         </p>
       </div>

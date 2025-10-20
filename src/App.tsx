@@ -19,6 +19,14 @@ import GuestRoute from './components/GuestRoute';
 import RoleRoute from './components/RoleRoute';
 import RoleRedirect from './components/RoleRedirect';
 import Navbar from './components/Navbar';
+import MedicalHistoryView from './pages/MedicalHistoryView';
+import MedicalHistoryNew from './pages/MedicalHistoryNew';
+import MedicalHistoryEdit from './pages/MedicalHistoryEdit';
+import UsersDoctors from './pages/UsersDoctors';
+import UsersNurses from './pages/UsersNurses';
+import UserNew from './pages/UserNew';
+import UserEdit from './pages/UserEdit';
+import ForgotPassword from './pages/ForgotPassword';
 
 const App = () => {
   return (
@@ -34,6 +42,7 @@ const App = () => {
             <Route path="/solicitar-registro" element={<GuestRoute redirectTo="/dashboard"><SolicitarRegistro /></GuestRoute>} />
             <Route path="/verify" element={<GuestRoute redirectTo="/dashboard"><VerifyEmail /></GuestRoute>} />
             <Route path="/login" element={<GuestRoute redirectTo="/dashboard"><Login /></GuestRoute>} />
+            <Route path="/forgot-password" element={<GuestRoute redirectTo="/dashboard"><ForgotPassword /></GuestRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><RoleRedirect /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -43,6 +52,36 @@ const App = () => {
             <Route path="/admin/pacientes" element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><AdminPatients /></RoleRoute>} />
             <Route path="/admin/carga" element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><AdminImport /></RoleRoute>} />
             <Route path="/medico" element={<RoleRoute allowed={['MEDICO','medico']}><MedicoDashboard /></RoleRoute>} />
+            {/* Vistas de Historia Clínica */}
+            <Route
+              path="/dashboard/medical-history/:patientId"
+              element={<RoleRoute allowed={['MEDICO','ADMINISTRADOR']}><MedicalHistoryView /></RoleRoute>}
+            />
+            <Route
+              path="/dashboard/medical-history/new"
+              element={<RoleRoute allowed={['MEDICO','ADMINISTRADOR']}><MedicalHistoryNew /></RoleRoute>}
+            />
+            <Route
+              path="/dashboard/medical-history/:id/edit"
+              element={<RoleRoute allowed={['MEDICO','ADMINISTRADOR']}><MedicalHistoryEdit /></RoleRoute>}
+            />
+            {/* Vistas de gestión de usuarios */}
+            <Route
+              path="/dashboard/users/doctors"
+              element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><UsersDoctors /></RoleRoute>}
+            />
+            <Route
+              path="/dashboard/users/nurses"
+              element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><UsersNurses /></RoleRoute>}
+            />
+            <Route
+              path="/dashboard/users/new"
+              element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><UserNew /></RoleRoute>}
+            />
+            <Route
+              path="/dashboard/users/:id/edit"
+              element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><UserEdit /></RoleRoute>}
+            />
           </Routes>
         </main>
       </div>

@@ -1,9 +1,10 @@
 export function getErrorMessage(err: unknown): string {
   try {
     // Log técnico para depurar, no visible al usuario
-    // eslint-disable-next-line no-console
     console.error('[API Error]', err);
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 
   // Formato compatible con Axios
   const ax = err as {

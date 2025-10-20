@@ -24,7 +24,7 @@ const AdminPatients = () => {
       try {
         const res = await api.get('/patients?limit=20&page=1');
         setPatients(res.data.patients || []);
-      } catch (e) {
+      } catch {
         setError('No se pudieron cargar los pacientes');
       } finally {
         setLoading(false);
@@ -77,4 +77,3 @@ const AdminPatients = () => {
 };
 
 export default AdminPatients;
-

@@ -27,24 +27,26 @@ const AdminDashboard = () => {
         // Nuevos usuarios en 7 días (aprox: primera página)
         const uList = await api.get('/users', { params: { limit: 50, page: 1 } });
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        const recent = (uList.data?.users || []).filter((it: any) => it.createdAt && new Date(it.createdAt).getTime() >= sevenDaysAgo);
+        type UserLite = { fullname?: string; email: string; createdAt?: string };
+        const recent = (uList.data?.users as UserLite[] | undefined || []).filter((it) => it.createdAt && new Date(it.createdAt).getTime() >= sevenDaysAgo);
         setNewUsersWeek(recent.length);
 
         // Feed reciente: mezcla de usuarios/pacientes últimos
         const pList = await api.get('/patients', { params: { limit: 10, page: 1 } });
-        const usersEvents = (uList.data?.users || []).slice(0, 5).map((it: any) => ({
+        const usersEvents = ((uList.data?.users as UserLite[] | undefined) || []).slice(0, 5).map((it) => ({
           title: `Nuevo usuario: ${it.fullname || it.email}`,
           level: 'Info' as const,
           when: it.createdAt || new Date().toISOString(),
         }));
-        const patientEvents = (pList.data?.patients || []).slice(0, 5).map((it: any) => ({
+        type PatientLite = { firstName: string; lastName: string; createdAt?: string };
+        const patientEvents = ((pList.data?.patients as PatientLite[] | undefined) || []).slice(0, 5).map((it) => ({
           title: `Nuevo paciente: ${it.firstName} ${it.lastName}`,
           level: 'Info' as const,
           when: it.createdAt || new Date().toISOString(),
         }));
         const merged = [...usersEvents, ...patientEvents].sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime()).slice(0, 6);
         setFeed(merged);
-      } catch (_) {
+      } catch {
         // silencioso en panel
       }
     })();

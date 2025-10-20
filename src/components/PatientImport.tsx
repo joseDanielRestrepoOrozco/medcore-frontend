@@ -103,15 +103,20 @@ const PatientImport: React.FC<Props> = ({ onProcess }) => {
       const res = await api.post('/patients/bulk-import', payload);
       const ok = res.data?.summary?.successful ?? 0;
       const fail = res.data?.summary?.failed ?? 0;
-      const failedRows: Array<{ index: number; error: string }> = res.data?.summary?.errors || res.data?.results?.failed?.map((r: any) => ({ index: r.index, error: r.error })) || [];
+      type FailedShape = { index: number; error: string };
+      const failedRows: FailedShape[] =
+        res.data?.summary?.errors ||
+        (Array.isArray(res.data?.results?.failed)
+          ? (res.data.results.failed as FailedShape[]).map((r: FailedShape) => ({ index: r.index, error: r.error }))
+          : []);
       let msg = `Importación completada. Éxitos: ${ok}, Fallidos: ${fail}`;
       if (fail > 0) {
         msg += `. Verifica que el CSV incluya la columna obligatoria fecha_nacimiento (YYYY-MM-DD) y datos válidos.`;
       }
       setMessage(msg);
-      (window as any).__bulkErrors = failedRows; // exposición rápida para depurar desde consola si hace falta
+      (globalThis as unknown as { __bulkErrors?: FailedShape[] }).__bulkErrors = failedRows; // exposición rápida para depurar desde consola si hace falta
       onProcess?.(file);
-    } catch (e) {
+    } catch {
       setMessage('Error procesando la importación');
     }
   };
