@@ -49,7 +49,9 @@ const AdminSidebar: React.FC<{ active?: string }> = ({ active = 'usuarios' }) =>
   ];
 
   return (
-    <aside className="w-64 bg-white border-r min-h-screen p-4">
+    <aside
+      className="sticky top-24 w-64 bg-[var(--mc-muted)] border-r border-slate-200 px-4 py-0 h-[calc(100vh-6rem)] overflow-y-auto"
+    >
       <nav className="space-y-1">
         {items.map((item) => {
           const isActive = item.key === active;
@@ -59,8 +61,8 @@ const AdminSidebar: React.FC<{ active?: string }> = ({ active = 'usuarios' }) =>
               to={item.to || '#'}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
                 isActive
-                  ? 'bg-slate-100 text-slate-900 border-l-4 border-slate-800'
-                  : 'text-slate-700 hover:bg-slate-50'
+                  ? 'bg-white text-slate-900 border-l-4 border-[var(--mc-secondary)]'
+                  : 'text-slate-700 hover:bg-white/70'
               }`}
             >
               <span className="text-slate-600">{item.icon}</span>

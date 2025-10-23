@@ -1,7 +1,14 @@
 import api from './api';
 
-// Payload types (alineado con backend monolítico)
-export type SignUpPayload = { fullname: string; email: string; currentPassword: string; role?: string };
+// Payload types (acepta camelCase o snake_case para compatibilidad)
+export type SignUpPayload = {
+  fullname: string;
+  email: string;
+  currentPassword?: string;
+  current_password?: string;
+  date_of_birth?: string; // YYYY-MM-DD
+  role?: string;
+};
 export type LoginPayload = { email: string; currentPassword: string };
 export type VerifyEmailPayload = { email: string; verificationCode: string };
 export type ResendVerificationPayload = { email: string };
@@ -40,8 +47,14 @@ export type ResendVerificationResponse = {
   message: string;
 };
 
-export const signUp = (payload: SignUpPayload) =>
-  api.post<SignUpResponse>('/auth/sign-up', payload);
+export const signUp = (payload: SignUpPayload) => {
+  const body: Record<string, unknown> = { ...payload };
+  if (!body.current_password && body.currentPassword) {
+    body.current_password = body.currentPassword;
+    delete body.currentPassword;
+  }
+  return api.post<SignUpResponse>('/auth/sign-up', body);
+};
 
 export const login = (payload: LoginPayload) =>
   api.post<LoginResponse>('/auth/log-in', payload);

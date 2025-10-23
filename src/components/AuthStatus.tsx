@@ -40,10 +40,11 @@ const AuthStatus = () => {
         title="Cerrar sesión"
         className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center bg-white"
       >
-        {/* Icono de encendido/apagado (power) */}
+        {/* Icono de salida (logout) más intuitivo */}
         <svg className="w-5 h-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v9" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.4 7.34A8 8 0 1 1 4.6 7.34" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 17l5-5-5-5" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12H3" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 19V5a2 2 0 00-2-2h-6" />
         </svg>
       </button>
     </div>

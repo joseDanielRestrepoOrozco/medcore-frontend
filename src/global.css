@@ -1,6 +1,18 @@
 /* 1. Importa Tailwind (v4) */
 @import "tailwindcss";
 
+/* Paleta de colores (ColorHunt):
+   Primario: #FE7743 | Secundario: #273F4F | Acento: #447D9B | Gris claro: #D7D7D7
+*/
+:root {
+  --mc-primary: #FE7743;
+  --mc-primary-600: #e36b3c;
+  --mc-secondary: #273F4F;
+  --mc-accent: #447D9B;
+  --mc-muted: #D7D7D7;
+  --mc-bg: #F4F7FA;
+}
+
 /* 2. Tus estilos personalizados usando @layer / @apply (después de las directivas) */
 @layer components {
   /* ejemplos de clases globales que componen utilidades */
@@ -8,12 +20,15 @@
     @apply bg-white p-6 rounded shadow;
   }
 
-  .btn-primary {
-    @apply px-4 py-2 bg-slate-800 text-white rounded;
-  }
+  .btn-primary { @apply px-4 py-2 rounded text-white transition; background-color: var(--mc-primary); }
+  .btn-primary:hover { background-color: var(--mc-primary-600); }
+  .btn-secondary { @apply px-4 py-2 rounded text-white transition; background-color: var(--mc-secondary); }
+  .link-primary { color: var(--mc-accent); }
+  .link-primary:hover { text-decoration: underline; }
 }
 
 /* 3. (opcional) estilos globales normales */
 html, body {
   height: 100%;
 }
+body { background-color: var(--mc-bg); margin: 0; }

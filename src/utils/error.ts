@@ -1,10 +1,5 @@
 export function getErrorMessage(err: unknown): string {
-  try {
-    // Log técnico para depurar, no visible al usuario
-    console.error('[API Error]', err);
-  } catch {
-    /* ignore */
-  }
+  // Silenciar logs en navegador: no imprimir en consola
 
   // Formato compatible con Axios
   const ax = err as {

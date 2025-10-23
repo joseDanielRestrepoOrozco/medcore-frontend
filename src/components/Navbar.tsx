@@ -8,13 +8,9 @@ const Navbar = () => {
   const { token } = useAuth();
 
   return (
-    <header className="w-full bg-pink-50 relative sticky top-0 z-50">
-      {/* franja superior amplia */}
-      <div className="w-full bg-pink-50 h-28"></div>
-
-      {/* contenido sobre la franja: logo, menú (píldora) y acciones */}
-      <div className="absolute inset-x-0 top-0">
-        <div className="max-w-7xl mx-auto px-10 flex items-center justify-between h-28 gap-x-8">
+    <header className="w-full sticky top-0 z-50" style={{ backgroundColor: 'var(--mc-muted)' }}>
+      {/* contenido: logo, menú (píldora) y acciones */}
+      <div className="max-w-7xl mx-auto px-10 flex items-center justify-between h-24 gap-x-8">
           {/* Bloque 1: Logo */}
           <div className="flex items-center">
             {/* Logo: si hay sesión, lleva al dashboard */}
@@ -32,11 +28,8 @@ const Navbar = () => {
                     <Link
                       key={m}
                       to={m === 'Home' ? '/' : '#'}
-                      className={`relative px-6 py-2 rounded-3xl text-sm ${
-                        i === 0
-                          ? 'bg-slate-800 text-white z-10 shadow-md border-2 border-slate-800'
-                          : 'bg-white text-slate-600 z-0 border border-slate-200'
-                      }`}
+                      className={`relative px-6 py-2 rounded-3xl text-sm ${i === 0 ? 'text-white z-10 shadow-md border-2' : 'bg-white text-slate-600 z-0 border border-slate-200'}`}
+                      style={i === 0 ? { backgroundColor: 'var(--mc-secondary)', borderColor: 'var(--mc-secondary)' } : undefined}
                     >
                       {m}
                     </Link>
@@ -62,8 +55,6 @@ const Navbar = () => {
             <AuthStatus />
           </div>
         </div>
-      </div>
-      {/* Fin contenido */}
     </header>
   );
 };

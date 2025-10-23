@@ -20,7 +20,7 @@ const UsersNurses = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get('/users', { params: { role: 'ENFERMERA' } });
+        const res = await api.get('/users/by-role', { params: { role: 'ENFERMERA' } });
         setUsers(res.data?.users || []);
       } catch {
         setError('No se pudieron cargar las enfermeras');

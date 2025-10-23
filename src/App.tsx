@@ -27,6 +27,8 @@ import UsersNurses from './pages/UsersNurses';
 import UserNew from './pages/UserNew';
 import UserEdit from './pages/UserEdit';
 import ForgotPassword from './pages/ForgotPassword';
+import Documents from './pages/Documents';
+import Agenda from './pages/Agenda';
 
 const App = () => {
   return (
@@ -35,7 +37,7 @@ const App = () => {
       <div className="min-h-screen flex flex-col">
         <Navbar />
 
-    <main className="flex-1 py-8">
+    <main className="flex-1 pt-0 pb-8">
             <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/signup" element={<GuestRoute redirectTo="/dashboard"><SignUp /></GuestRoute>} />
@@ -81,6 +83,14 @@ const App = () => {
             <Route
               path="/dashboard/users/:id/edit"
               element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><UserEdit /></RoleRoute>}
+            />
+            <Route
+              path="/dashboard/documents/:patientId"
+              element={<RoleRoute allowed={['ADMINISTRADOR','MEDICO','ENFERMERA']}><Documents /></RoleRoute>}
+            />
+            <Route
+              path="/dashboard/agenda"
+              element={<RoleRoute allowed={['MEDICO','ADMINISTRADOR']}><Agenda /></RoleRoute>}
             />
           </Routes>
         </main>

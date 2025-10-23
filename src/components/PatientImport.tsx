@@ -1,5 +1,7 @@
 import React, { useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 import api from '../services/api';
+import { getErrorMessage } from '../utils/error';
 
 type Props = {
   onProcess?: (file: File) => void;
@@ -17,7 +19,13 @@ const PatientImport: React.FC<Props> = ({ onProcess }) => {
 
   const accept = '.csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv';
 
-  const handleBrowse = () => inputRef.current?.click();
+  const handleBrowse = () => {
+    try {
+      inputRef.current?.click();
+    } catch {
+      // noop
+    }
+  };
 
   const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const f = e.target.files?.[0] || null;
@@ -42,6 +50,7 @@ const PatientImport: React.FC<Props> = ({ onProcess }) => {
 
   const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
     const f = e.dataTransfer?.files?.[0] || null;
     if (!f) return;
@@ -92,16 +101,27 @@ const PatientImport: React.FC<Props> = ({ onProcess }) => {
 
   const process = async () => {
     if (!file) return;
-    if (file.name.toLowerCase().endsWith('.xlsx')) {
-      setMessage('XLSX recibido. Conversión no soportada en cliente; usa CSV por ahora.');
-      return;
-    }
     setMessage('Procesando archivo...');
     try {
-      const rows = await parseCsv(file);
+      let rows: Array<Record<string, unknown>> = [];
+      const ext = file.name.toLowerCase().split('.').pop();
+      if (ext === 'xlsx') {
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' }) as Array<Record<string, unknown>>;
+      } else {
+        rows = await parseCsv(file);
+      }
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        setMessage('El archivo está vacío o no tiene datos.');
+        return;
+      }
+
       const payload = { patients: rows };
       const res = await api.post('/patients/bulk-import', payload);
-      const ok = res.data?.summary?.successful ?? 0;
+      const ok = res.data?.summary?.successful ?? res.data?.inserted ?? res.data?.count ?? 0;
       const fail = res.data?.summary?.failed ?? 0;
       type FailedShape = { index: number; error: string };
       const failedRows: FailedShape[] =
@@ -109,15 +129,16 @@ const PatientImport: React.FC<Props> = ({ onProcess }) => {
         (Array.isArray(res.data?.results?.failed)
           ? (res.data.results.failed as FailedShape[]).map((r: FailedShape) => ({ index: r.index, error: r.error }))
           : []);
-      let msg = `Importación completada. Éxitos: ${ok}, Fallidos: ${fail}`;
+      let msg = `Importación completada. Éxitos: ${ok}${fail ? `, Fallidos: ${fail}` : ''}`;
       if (fail > 0) {
-        msg += `. Verifica que el CSV incluya la columna obligatoria fecha_nacimiento (YYYY-MM-DD) y datos válidos.`;
+        msg += `. Verifica que el archivo incluya la columna obligatoria fecha_nacimiento (YYYY-MM-DD) y datos válidos.`;
       }
       setMessage(msg);
-      (globalThis as unknown as { __bulkErrors?: FailedShape[] }).__bulkErrors = failedRows; // exposición rápida para depurar desde consola si hace falta
+      (globalThis as unknown as { __bulkErrors?: FailedShape[] }).__bulkErrors = failedRows;
       onProcess?.(file);
-    } catch {
-      setMessage('Error procesando la importación');
+    } catch (err) {
+      // Silenciar logs en navegador; solo mostrar mensaje
+      setMessage(getErrorMessage(err));
     }
   };
 
@@ -126,20 +147,33 @@ const PatientImport: React.FC<Props> = ({ onProcess }) => {
       <p className="text-sm text-slate-600">Sube un archivo CSV o XLSX con la información de los pacientes.</p>
 
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
+        role="button"
+        tabIndex={0}
+        onClick={handleBrowse}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleBrowse(); }}
+        onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; setDragOver(true); }}
+        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); }}
         onDrop={handleDrop}
-        className={`flex flex-col items-center justify-center rounded-xl p-8 text-center transition border-2 ${dragOver ? 'border-slate-800 bg-slate-50 border-dashed' : 'border-slate-300 border-dashed'}`}
+        className={`cursor-pointer select-none flex flex-col items-center justify-center rounded-xl p-8 text-center transition border-2 outline-none focus:ring-2 focus:ring-slate-400 ${dragOver ? 'border-slate-800 bg-slate-50 border-dashed' : 'border-slate-300 border-dashed'}`}
+        aria-label="Arrastra y suelta o selecciona un archivo"
       >
         <svg className="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v8m-4-4h8M5 6h14v12H5z" />
         </svg>
         <p className="mt-3 text-sm text-slate-600">Arrastra y suelta o selecciona un archivo</p>
         <p className="text-xs text-slate-400">Solo CSV o XLSX (máx. 60MB)</p>
-        <button type="button" onClick={handleBrowse} className="mt-4 px-4 py-2 rounded bg-white border border-slate-300 text-sm">
+        <label htmlFor="patient-upload" className="mt-4 px-4 py-2 rounded bg-white border border-slate-300 text-sm cursor-pointer inline-block">
           Seleccionar Archivo
-        </button>
-        <input ref={inputRef} type="file" accept={accept} onChange={handleFileChange} className="hidden" />
+        </label>
+        <input
+          id="patient-upload"
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          onChange={handleFileChange}
+          className="sr-only"
+        />
         {file && <div className="mt-3 text-sm text-slate-700">Archivo: {file.name}</div>}
       </div>
 

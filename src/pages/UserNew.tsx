@@ -17,6 +17,7 @@ const UserNew = () => {
   const [role, setRole] = useState<RoleKey>('MEDICO');
   const [specialization, setSpecialization] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +26,13 @@ const UserNew = () => {
     setLoading(true);
     setError(null);
     try {
-      const payload: Record<string, unknown> = { fullname, email, role, currentPassword };
+      const payload: Record<string, unknown> = {
+        fullname,
+        email,
+        role,
+        current_password: currentPassword,
+        date_of_birth: dateOfBirth,
+      };
       if (role === 'MEDICO') payload.specialization = specialization;
       await api.post('/users', payload);
       navigate('/admin/usuarios');
@@ -50,17 +57,27 @@ const UserNew = () => {
             required
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium">Contraseña temporal</label>
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-            placeholder="Contraseña inicial del usuario"
-            required
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium">Contraseña temporal</label>
+        <input
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          className="w-full border rounded px-3 py-2"
+          placeholder="Contraseña inicial del usuario"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium">Fecha de nacimiento</label>
+        <input
+          type="date"
+          value={dateOfBirth}
+          onChange={(e) => setDateOfBirth(e.target.value)}
+          className="w-full border rounded px-3 py-2"
+          required
+        />
+      </div>
         <div>
           <label className="block text-sm font-medium">Correo</label>
           <input

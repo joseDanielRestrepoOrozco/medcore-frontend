@@ -21,7 +21,7 @@ const UsersDoctors = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get('/users', { params: { role: 'MEDICO' } });
+        const res = await api.get('/users/by-role', { params: { role: 'MEDICO' } });
         setUsers(res.data?.users || []);
       } catch {
         setError('No se pudieron cargar los médicos');

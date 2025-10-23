@@ -22,6 +22,7 @@ const roleOptions = ['ADMINISTRADOR', 'MEDICO', 'ENFERMERA'] as const;
 
 const AdminUsers = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarDesktop, setSidebarDesktop] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,11 +34,19 @@ const AdminUsers = () => {
     setLoading(true);
     setError(null);
     try {
-      const params = filter === 'TODOS' ? {} : { role: filter };
-      const res = await api.get('/users', { params });
-      const list = (res.data?.users || []) as User[];
-      // Filtra fuera pacientes por seguridad
-      setUsers(list.filter((u) => (u.role || '').toUpperCase() !== 'PACIENTE'));
+      let list: User[] = [];
+      if (filter === 'TODOS') {
+        const res = await api.get('/users');
+        list = (res.data?.users || []) as User[];
+      } else {
+        const res = await api.get('/users/by-role', { params: { role: filter } });
+        list = (res.data?.users || []) as User[];
+      }
+      // Filtra fuera pacientes por seguridad cuando es "TODOS"
+      const sanitized = filter === 'TODOS'
+        ? list.filter((u) => (u.role || '').toUpperCase() !== 'PACIENTE')
+        : list;
+      setUsers(sanitized);
     } catch {
       setError('No se pudieron cargar los usuarios');
     } finally {
@@ -74,9 +83,11 @@ const AdminUsers = () => {
 
   return (
     <div className="flex">
-      <div className="hidden md:block">
-        <AdminSidebar active="usuarios" />
-      </div>
+      {sidebarDesktop && (
+        <div className="hidden md:block relative">
+          <AdminSidebar active="usuarios" />
+        </div>
+      )}
       {sidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="flex-1 bg-black/30" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
@@ -88,6 +99,17 @@ const AdminUsers = () => {
 
       <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
         <button type="button" className="md:hidden mb-4 px-3 py-2 rounded border bg-white" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">Menú</button>
+        {/* Botón flotante de colapso (escritorio) */}
+        <button
+          type="button"
+          onClick={() => setSidebarDesktop((v) => !v)}
+          aria-label={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
+          title={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
+          className="hidden md:flex items-center justify-center fixed z-40 top-1/2 -translate-y-1/2 transform w-8 h-8 rounded-full border bg-white shadow"
+          style={{ left: sidebarDesktop ? '15.5rem' : '0.5rem' }}
+        >
+          <span className="text-slate-700 text-lg">{sidebarDesktop ? '⟨' : '⟩'}</span>
+        </button>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Usuarios</h1>
           <a href="/dashboard/users/new" className="px-3 py-2 text-sm bg-slate-800 text-white rounded">Nuevo usuario</a>

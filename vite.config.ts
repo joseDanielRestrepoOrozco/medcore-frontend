@@ -7,8 +7,10 @@ import path from 'path';
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src')
-    }
+    alias: [
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+      // Mapear exactamente "xlsx" a la build ESM del navegador, sin afectar "xlsx/..."
+      { find: /^xlsx$/, replacement: 'xlsx/xlsx.mjs' },
+    ],
   }
 });

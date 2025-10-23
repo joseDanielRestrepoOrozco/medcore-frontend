@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 type SidebarProps = {
   open?: boolean;
@@ -35,23 +36,32 @@ const Sidebar: React.FC<SidebarProps> = ({ open = false, onClose }) => {
   );
 
   const items = [
-    { key: 'historia', label: 'Historia Clínica', icon: IconFile },
-    { key: 'signos', label: 'Signos Vitales', icon: IconHeart },
-    { key: 'medicamentos', label: 'Medicamentos', icon: IconPill },
-    { key: 'calendario', label: 'Calendario de Citas', icon: IconCalendar },
-    { key: 'alertas', label: 'Alertas', icon: IconBell },
+    { key: 'historia', label: 'Historia Clínica', icon: IconFile, to: '/dashboard/medical-history/new' },
+    { key: 'signos', label: 'Signos Vitales', icon: IconHeart, to: '#' },
+    { key: 'medicamentos', label: 'Medicamentos', icon: IconPill, to: '#' },
+    { key: 'calendario', label: 'Agenda', icon: IconCalendar, to: '/dashboard/agenda' },
+    { key: 'alertas', label: 'Alertas', icon: IconBell, to: '#' },
   ];
+
+  const { user } = useAuth();
+  const role = String(user?.role || '').toUpperCase();
+  const visibleItems = items.filter((it) => {
+    if (it.key === 'historia' && role === 'ENFERMERA') return false;
+    return true;
+  });
 
   return (
     <>
       {/* Static sidebar on md+ */}
-      <aside className="hidden md:block w-56 bg-slate-50 border-r min-h-screen p-4">
+      <aside
+        className="hidden md:block sticky top-24 w-56 bg-[var(--mc-muted)] border-r border-slate-200 px-4 py-0 h-[calc(100vh-6rem)] overflow-y-auto"
+      >
         <nav className="space-y-2">
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <Link
               key={item.key}
-              to="#"
-              className="flex items-center gap-2 px-3 py-2 rounded text-sm text-slate-700 hover:bg-slate-100"
+              to={item.to || '#'}
+              className="flex items-center gap-2 px-3 py-2 rounded text-sm text-slate-700 hover:bg-white/70"
             >
               <span className="text-slate-500">{item.icon}</span>
               <span>{item.label}</span>
@@ -83,10 +93,10 @@ const Sidebar: React.FC<SidebarProps> = ({ open = false, onClose }) => {
               </button>
             </div>
             <nav className="space-y-2">
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <Link
                   key={item.key}
-                  to="#"
+                  to={item.to || '#'}
                   onClick={onClose}
                   className="flex items-center gap-2 px-3 py-2 rounded text-sm text-slate-700 hover:bg-slate-100"
                 >

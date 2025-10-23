@@ -14,10 +14,11 @@ const signUpSchema = z.object({
   currentPassword: z
     .string()
     .min(1, { message: 'La contraseña es obligatoria' })
-    .max(6, { message: 'Máximo 6 caracteres' })
+    .max(15, { message: 'Máximo 15 caracteres' })
     .refine((val) => /\d/.test(val), {
       message: 'Debe contener al menos un número',
     }),
+  dateOfBirth: z.string().min(1, { message: 'La fecha es obligatoria' }),
 });
 
 const SignUp = () => {
@@ -37,6 +38,7 @@ const SignUp = () => {
       email: '',
       currentPassword: '',
       fullname: '',
+      dateOfBirth: '',
     },
     mode: 'onChange',
   });
@@ -45,6 +47,7 @@ const SignUp = () => {
     fullname?: { message?: string };
     email?: { message?: string };
     currentPassword?: { message?: string };
+    dateOfBirth?: { message?: string };
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -53,7 +56,13 @@ const SignUp = () => {
     try {
       // La creación de cuenta es para Administradores. El backend asigna rol por defecto
       // o puede aceptarlo en el payload si está soportado.
-      await signUp({ ...data, role: 'ADMINISTRADOR' });
+      await signUp({
+        fullname: data.fullname,
+        email: data.email,
+        current_password: data.currentPassword,
+        date_of_birth: data.dateOfBirth,
+        role: 'ADMINISTRADOR',
+      } as unknown as any);
       navigate('/verify', { state: { email: data.email } });
       form.reset();
       sessionStorage.removeItem('signup_access');
@@ -144,6 +153,25 @@ const SignUp = () => {
               {errors.currentPassword.message}
             </span>
           )}
+          <label className="block mt-4">
+            Fecha de nacimiento
+            <input
+              type="date"
+              {...form.register('dateOfBirth')}
+              className={
+                'w-full px-4 py-3 rounded-lg outline-none transition ' +
+                (errors.dateOfBirth?.message
+                  ? 'border border-red-500 focus:border-red-600 focus:ring-2 focus:ring-red-300 '
+                  : 'border border-slate-300 focus:border-slate-800 focus:ring-2 focus:ring-slate-400 ')
+              }
+              aria-invalid={Boolean(errors.dateOfBirth) || undefined}
+            />
+            {errors.dateOfBirth?.message && (
+              <span className="block text-red-600 text-sm mt-1">
+                {errors.dateOfBirth.message}
+              </span>
+            )}
+          </label>
           <button
             type="submit"
             disabled={loading || !form.formState.isValid}
