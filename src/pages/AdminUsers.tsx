@@ -29,6 +29,7 @@ const AdminUsers = () => {
   type Filter = 'TODOS' | 'ADMINISTRADOR' | 'MEDICO' | 'ENFERMERA';
   const [filter, setFilter] = useState<Filter>('TODOS');
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -36,10 +37,14 @@ const AdminUsers = () => {
     try {
       let list: User[] = [];
       if (filter === 'TODOS') {
-        const res = await api.get('/users');
+        const params: Record<string, unknown> = {};
+        if (query.trim()) params.q = query.trim();
+        const res = await api.get('/users', { params });
         list = (res.data?.users || []) as User[];
       } else {
-        const res = await api.get('/users/by-role', { params: { role: filter } });
+        const params: Record<string, unknown> = { role: filter };
+        if (query.trim()) params.q = query.trim();
+        const res = await api.get('/users/by-role', { params });
         list = (res.data?.users || []) as User[];
       }
       // Filtra fuera pacientes por seguridad cuando es "TODOS"
@@ -115,6 +120,17 @@ const AdminUsers = () => {
           <a href="/dashboard/users/new" className="px-3 py-2 text-sm bg-slate-800 text-white rounded">Nuevo usuario</a>
         </div>
 
+        <div className="mt-4 flex items-center gap-2">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') load(); }}
+            placeholder="Buscar por nombre, correo o identificación..."
+            className="w-full md:w-80 border rounded px-3 py-2"
+          />
+          <button onClick={load} className="px-3 py-2 border rounded bg-white">Buscar</button>
+        </div>
+
         <div className="mt-4 inline-flex bg-white p-1 rounded-full border border-slate-200">
           {tabs.map((t) => (
             <button
@@ -151,24 +167,30 @@ const AdminUsers = () => {
                       <td className="px-4 py-3">{u.email}</td>
                       <td className="px-4 py-3">{ROLE_LABEL[role] || role}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs ${u.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {u.status}
+                        <span className={`px-2 py-1 rounded text-xs ${u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : u.status === 'INACTIVE' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {u.status === 'ACTIVE' ? 'ACTIVO' : u.status === 'INACTIVE' ? 'INACTIVO' : u.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 space-x-2">
-                        <select
-                          value={(function () {
-                            const isRoleOption = (val: string): val is typeof roleOptions[number] => (roleOptions as readonly string[]).includes(val);
-                            return isRoleOption(role) ? role : 'MEDICO';
-                          })()}
-                          onChange={(e) => changeRole(u.id, e.target.value)}
-                          disabled={savingId === u.id}
-                          className="border rounded px-2 py-1 text-sm"
-                        >
-                          {roleOptions.map((r) => (
-                            <option key={r} value={r}>{ROLE_LABEL[r]}</option>
-                          ))}
-                        </select>
+                        {(role === 'MEDICO' || role === 'ENFERMERA') && (
+                          <button
+                            className="text-sm px-3 py-1 border rounded"
+                            disabled={savingId === u.id}
+                            onClick={async () => {
+                              try {
+                                setSavingId(u.id);
+                                const newStatus = u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+                                if (role === 'MEDICO') await api.patch(`/users/doctors/status/${u.id}`, { status: newStatus });
+                                if (role === 'ENFERMERA') await api.patch(`/users/nurses/status/${u.id}`, { status: newStatus });
+                                await load();
+                              } finally {
+                                setSavingId(null);
+                              }
+                            }}
+                          >
+                            {u.status === 'ACTIVE' ? 'Inactivar' : 'Activar'}
+                          </button>
+                        )}
                         <a href={`/dashboard/users/${u.id}/edit`} className="text-sm px-3 py-1 border rounded inline-block">Editar</a>
                       </td>
                   </tr>

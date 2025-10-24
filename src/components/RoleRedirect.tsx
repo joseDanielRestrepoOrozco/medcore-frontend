@@ -8,8 +8,8 @@ const RoleRedirect = () => {
   if (role === 'ADMINISTRADOR') return <Navigate to="/admin" replace />;
   if (role === 'PACIENTE') return <Navigate to="/patient" replace />;
   if (role === 'MEDICO') return <Navigate to="/medico" replace />;
+  if (role === 'ENFERMERA') return <Navigate to="/enfermera" replace />;
   return <Navigate to="/dashboard" replace />; // fallback por si falta rol
 };
 
 export default RoleRedirect;
-

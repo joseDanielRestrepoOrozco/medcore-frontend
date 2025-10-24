@@ -11,22 +11,33 @@ const roleLabels: Record<RoleKey, string> = {
   PACIENTE: 'Paciente',
 };
 
-type User = { id: string; email: string; fullname?: string; role?: string };
+type User = {
+  id: string;
+  email: string;
+  fullname?: string;
+  phone?: string;
+  role?: string;
+  status?: string;
+  specialization?: string;
+  department?: string;
+  license_number?: string;
+};
 
 const UserEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<RoleKey>('MEDICO');
+  const [email, setEmail] = useState('');
+  const [fullname, setFullname] = useState('');
+  const [phone, setPhone] = useState('');
+  const [status, setStatus] = useState<'ACTIVE'|'INACTIVE'|'PENDING'>('ACTIVE');
+  const [specialization, setSpecialization] = useState('');
+  const [department, setDepartment] = useState('');
+  const [license, setLicense] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchUsersPages = async (): Promise<User[]> => {
-    // Para entorno de pruebas: trae hasta 1000 registros de la primera página
-    const res = await api.get('/users', { params: { page: 1, limit: 1000 } });
-    return (res.data?.users || []) as User[];
-  };
 
   useEffect(() => {
     const load = async () => {
@@ -34,13 +45,21 @@ const UserEdit = () => {
       setLoading(true);
       setError(null);
       try {
-        const users = await fetchUsersPages();
-        const u = users.find((x) => x.id === id) || null;
+        const res = await api.get(`/users/${id}`);
+        const u = (res.data || null) as User | null;
         if (!u) {
           setError('Usuario no encontrado');
         } else {
           setUser(u);
-          setRole(((u.role || 'MEDICO') as string).toUpperCase() as RoleKey);
+          const r = ((u.role || 'MEDICO') as string).toUpperCase() as RoleKey;
+          setRole(r);
+          setEmail(u.email || '');
+          setFullname(u.fullname || '');
+          setPhone(u.phone || '');
+          setStatus(((u.status || 'ACTIVE') as string).toUpperCase() as any);
+          setSpecialization(u.specialization || '');
+          setDepartment(u.department || '');
+          setLicense(u.license_number || '');
         }
       } catch {
         setError('No se pudo cargar el usuario');
@@ -57,10 +76,33 @@ const UserEdit = () => {
     setSaving(true);
     setError(null);
     try {
-      await api.put(`/users/${id}/role`, { role });
+      if (role === 'MEDICO') {
+        await api.put(`/users/doctors/${id}`, {
+          email,
+          fullname,
+          phone,
+          specialization,
+          department,
+          license_number: license,
+        });
+      } else if (role === 'ENFERMERA') {
+        await api.put(`/users/nurses/${id}`, {
+          email,
+          fullname,
+          phone,
+          department,
+        });
+      } else {
+        await api.put(`/users/${id}`, {
+          email,
+          fullname,
+          phone,
+          status,
+        });
+      }
       navigate('/admin/usuarios');
     } catch {
-      setError('No se pudo actualizar el rol');
+      setError('No se pudo actualizar el usuario');
     } finally {
       setSaving(false);
     }
@@ -76,11 +118,15 @@ const UserEdit = () => {
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
             <label className="block text-sm font-medium">Nombre completo</label>
-            <input value={user.fullname || ''} readOnly className="w-full border rounded px-3 py-2 bg-slate-50" />
+            <input value={fullname} onChange={(e) => setFullname(e.target.value)} className="w-full border rounded px-3 py-2" />
           </div>
           <div>
             <label className="block text-sm font-medium">Correo</label>
-            <input value={user.email} readOnly className="w-full border rounded px-3 py-2 bg-slate-50" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Teléfono</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full border rounded px-3 py-2" />
           </div>
           <div>
             <label className="block text-sm font-medium">Rol</label>
@@ -88,6 +134,36 @@ const UserEdit = () => {
               {(Object.keys(roleLabels) as RoleKey[]).map((k) => (
                 <option key={k} value={k}>{roleLabels[k]}</option>
               ))}
+            </select>
+          </div>
+          {role === 'MEDICO' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium">Especialización</label>
+                <input value={specialization} onChange={(e) => setSpecialization(e.target.value)} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Departamento</label>
+                <input value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full border rounded px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Licencia</label>
+                <input value={license} onChange={(e) => setLicense(e.target.value)} className="w-full border rounded px-3 py-2" />
+              </div>
+            </>
+          )}
+          {role === 'ENFERMERA' && (
+            <div>
+              <label className="block text-sm font-medium">Departamento</label>
+              <input value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full border rounded px-3 py-2" />
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium">Estado</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="w-full border rounded px-3 py-2">
+              <option value="ACTIVE">ACTIVO</option>
+              <option value="INACTIVE">INACTIVO</option>
+              <option value="PENDING">PENDIENTE</option>
             </select>
           </div>
           <button type="submit" disabled={saving} className="px-4 py-2 bg-slate-800 text-white rounded">

@@ -29,6 +29,9 @@ import UserEdit from './pages/UserEdit';
 import ForgotPassword from './pages/ForgotPassword';
 import Documents from './pages/Documents';
 import Agenda from './pages/Agenda';
+import DoctorPatients from './pages/DoctorPatients';
+import PatientHistory from './pages/PatientHistory';
+import NurseDashboard from './pages/NurseDashboard';
 
 const App = () => {
   return (
@@ -49,6 +52,7 @@ const App = () => {
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/patient" element={<RoleRoute allowed={['PACIENTE','patient']}><PatientDashboard /></RoleRoute>} />
+            <Route path="/enfermera" element={<RoleRoute allowed={['ENFERMERA']}><NurseDashboard /></RoleRoute>} />
             <Route path="/admin" element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><AdminDashboard /></RoleRoute>} />
             <Route path="/admin/usuarios" element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><AdminUsers /></RoleRoute>} />
             <Route path="/admin/pacientes" element={<RoleRoute allowed={['ADMINISTRADOR','admin']}><AdminPatients /></RoleRoute>} />
@@ -91,6 +95,14 @@ const App = () => {
             <Route
               path="/dashboard/agenda"
               element={<RoleRoute allowed={['MEDICO','ADMINISTRADOR']}><Agenda /></RoleRoute>}
+            />
+            <Route
+              path="/medico/pacientes"
+              element={<RoleRoute allowed={['MEDICO','ADMINISTRADOR']}><DoctorPatients /></RoleRoute>}
+            />
+            <Route
+              path="/patient/history"
+              element={<RoleRoute allowed={['PACIENTE','patient']}><PatientHistory /></RoleRoute>}
             />
           </Routes>
         </main>

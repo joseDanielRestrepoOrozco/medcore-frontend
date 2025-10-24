@@ -16,6 +16,7 @@ const MedicalHistoryNew = () => {
   const [description, setDescription] = useState('');
   const [symptoms, setSymptoms] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -106,7 +107,18 @@ const MedicalHistoryNew = () => {
         </div>
         <div>
           <label className="block text-sm font-medium">Adjuntar documentos (PDF/JPG/PNG)</label>
-          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+          <div
+            role="button"
+            tabIndex={0}
+            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; setDragOver(true); }}
+            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); }}
+            onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const dropped = Array.from(e.dataTransfer.files || []); if (dropped.length) setFiles((prev) => [...prev, ...dropped]); }}
+            className={`mt-2 border-2 border-dashed rounded-lg p-6 text-center transition ${dragOver ? 'border-slate-800 bg-slate-50' : 'border-slate-300'}`}
+          >
+            Arrastra y suelta los archivos aquí o haz clic para seleccionarlos
+            <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files || [])])} className="sr-only" />
+          </div>
           {files.length > 0 && (
             <ul className="mt-2 text-sm text-slate-600 list-disc list-inside">
               {files.map((f, idx) => (

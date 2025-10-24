@@ -6,7 +6,8 @@ const BulkImport: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [failedRows, setFailedRows] = useState<Array<{ index: number; error: string }>>([]);
+  type Failed = { index: number; error: string; row?: Record<string, unknown> };
+  const [failedRows, setFailedRows] = useState<Failed[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const accept = '.csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv';
@@ -65,7 +66,7 @@ const BulkImport: React.FC = () => {
       // Manejo flexible de respuestas
       const ok = res.data?.summary?.successful ?? res.data?.inserted ?? res.data?.count ?? 0;
       const fail = res.data?.summary?.failed ?? 0;
-      const failed = Array.isArray(res.data?.results?.failed) ? (res.data.results.failed as Array<{ index:number; error:string }>) : [];
+      const failed = Array.isArray(res.data?.results?.failed) ? (res.data.results.failed as Failed[]) : [];
       setFailedRows(failed);
       let msg = `Importación completada. Éxitos: ${ok}${fail ? `, Fallidos: ${fail}` : ''}`;
       if (fail > 0) msg += '. Revisa el CSV (roles, fechas YYYY-MM-DD).';
@@ -143,16 +144,26 @@ const BulkImport: React.FC = () => {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="text-left px-3 py-2 border">Fila</th>
+                  <th className="text-left px-3 py-2 border">Documento</th>
+                  <th className="text-left px-3 py-2 border">Campo</th>
                   <th className="text-left px-3 py-2 border">Error</th>
                 </tr>
               </thead>
               <tbody>
-                {failedRows.map((f, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="px-3 py-2 border">{(f.index ?? 0) + 2}</td>
-                    <td className="px-3 py-2 border">{String(f.error || '')}</td>
-                  </tr>
-                ))}
+                {failedRows.map((f, i) => {
+                  const doc = (f.row?.email as string) || (f.row?.license_number as string) || '-';
+                  const e = (f.error || '').toLowerCase();
+                  const fields = ['email','current_password','fullname','date_of_birth','role','specialization','department','license_number','phone'];
+                  const campo = fields.find((k) => e.includes(k.replace('_',' '))) || '';
+                  return (
+                    <tr key={i} className="border-t">
+                      <td className="px-3 py-2 border">{(f.index ?? 0) + 2}</td>
+                      <td className="px-3 py-2 border">{doc}</td>
+                      <td className="px-3 py-2 border">{campo.toUpperCase()}</td>
+                      <td className="px-3 py-2 border">{String(f.error || '')}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

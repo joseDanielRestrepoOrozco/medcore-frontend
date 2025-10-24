@@ -37,6 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({ open = false, onClose }) => {
 
   const items = [
     { key: 'historia', label: 'Historia Clínica', icon: IconFile, to: '/dashboard/medical-history/new' },
+    { key: 'pacientes', label: 'Pacientes', icon: IconFile, to: '/medico/pacientes' },
+    { key: 'mihistoria', label: 'Mi Historia', icon: IconFile, to: '/patient/history' },
     { key: 'signos', label: 'Signos Vitales', icon: IconHeart, to: '#' },
     { key: 'medicamentos', label: 'Medicamentos', icon: IconPill, to: '#' },
     { key: 'calendario', label: 'Agenda', icon: IconCalendar, to: '/dashboard/agenda' },
@@ -47,6 +49,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open = false, onClose }) => {
   const role = String(user?.role || '').toUpperCase();
   const visibleItems = items.filter((it) => {
     if (it.key === 'historia' && role === 'ENFERMERA') return false;
+    // Pacientes: solo para Médico/Admin (no Enfermera)
+    if (it.key === 'pacientes' && !(role === 'MEDICO' || role === 'ADMINISTRADOR')) return false;
+    if (it.key === 'mihistoria' && role !== 'PACIENTE') return false;
     return true;
   });
 

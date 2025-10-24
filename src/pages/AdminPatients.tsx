@@ -18,12 +18,15 @@ const AdminPatients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const [sidebarDesktop, setSidebarDesktop] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/patients?limit=20&page=1');
+        const params: Record<string, unknown> = { limit: 20, page: 1 };
+        if (query.trim()) params.q = query.trim();
+        const res = await api.get('/patients', { params });
         const list = (res.data.patients || []) as Patient[];
         // deduplicar por id si el backend devolviera duplicados
         const uniq: Record<string, Patient> = {};
@@ -58,6 +61,16 @@ const AdminPatients = () => {
         </button>
 
         <h1 className="text-2xl font-bold mb-4">Pacientes</h1>
+        <div className="mb-4 flex items-center gap-2">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (async () => { setLoading(true); await (async () => { try { const params: Record<string, unknown> = { limit: 20, page: 1 }; if (query.trim()) params.q = query.trim(); const res = await api.get('/patients', { params }); const list = (res.data.patients || []) as Patient[]; const uniq: Record<string, Patient> = {}; for (const p of list) uniq[p.id] = p; setPatients(Object.values(uniq)); } catch { setError('No se pudieron cargar los pacientes'); } finally { setLoading(false); } })(); })(); }}
+            placeholder="Buscar por nombre, correo o identificación..."
+            className="w-full md:w-80 border rounded px-3 py-2"
+          />
+          <button onClick={() => { (async () => { setLoading(true); try { const params: Record<string, unknown> = { limit: 20, page: 1 }; if (query.trim()) params.q = query.trim(); const res = await api.get('/patients', { params }); const list = (res.data.patients || []) as Patient[]; const uniq: Record<string, Patient> = {}; for (const p of list) uniq[p.id] = p; setPatients(Object.values(uniq)); } catch { setError('No se pudieron cargar los pacientes'); } finally { setLoading(false); } })(); }} className="px-3 py-2 border rounded bg-white">Buscar</button>
+        </div>
         {loading && <div>Cargando...</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && (
