@@ -18,7 +18,9 @@ RUN npm run build
 
 # ETAPA 2: Servir la aplicación
 # Usa una imagen de Nginx ligera y segura para servir los archivos estáticos.
-FROM nginx:1.20.1
+FROM nginx:1.25
 
 # Copia los archivos compilados desde la etapa anterior a la carpeta de Nginx.
 COPY --from=build /usr/src/app/dist /usr/share/nginx/html
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
