@@ -6,45 +6,80 @@ import api from '../services/api';
 const AdminDashboard = () => {
   const { user, token } = useAuth();
   const displayName = user?.fullname || user?.email || 'Juan Pérez';
-  
+
   const [usersActive, setUsersActive] = useState<number>(0);
   const [patientsTotal, setPatientsTotal] = useState<number>(0);
   const [newUsersWeek, setNewUsersWeek] = useState<number>(0);
-  const [feed, setFeed] = useState<Array<{ title: string; level: 'Info' | 'Alerta'; when: string }>>([]);
+  const [feed, setFeed] = useState<
+    Array<{ title: string; level: 'Info' | 'Alerta'; when: string }>
+  >([]);
 
   useEffect(() => {
     if (!token) return; // espere a tener token antes de cargar métricas
     (async () => {
       try {
         // Usuarios activos (ACTIVE)
-        const u = await api.get('/users', { params: { state: 'active', limit: 1, page: 1 } });
+        const u = await api.get('/users', {
+          params: { state: 'active', limit: 1, page: 1 },
+        });
         setUsersActive(u.data?.pagination?.total || 0);
 
         // Total pacientes
-        const p = await api.get('/patients', { params: { limit: 1, page: 1 } });
+        const p = await api.get('/users/patients', {
+          params: { limit: 1, page: 1 },
+        });
         setPatientsTotal(p.data?.pagination?.total || 0);
 
         // Nuevos usuarios en 7 días (aprox: primera página)
-        const uList = await api.get('/users', { params: { limit: 50, page: 1 } });
+        const uList = await api.get('/users', {
+          params: { limit: 50, page: 1 },
+        });
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        type UserLite = { fullname?: string; email: string; createdAt?: string };
-        const recent = (uList.data?.users as UserLite[] | undefined || []).filter((it) => it.createdAt && new Date(it.createdAt).getTime() >= sevenDaysAgo);
+        type UserLite = {
+          fullname?: string;
+          email: string;
+          createdAt?: string;
+        };
+        const recent = (
+          (uList.data?.users as UserLite[] | undefined) || []
+        ).filter(
+          it => it.createdAt && new Date(it.createdAt).getTime() >= sevenDaysAgo
+        );
+
         setNewUsersWeek(recent.length);
 
         // Feed reciente: mezcla de usuarios/pacientes últimos
-        const pList = await api.get('/patients', { params: { limit: 10, page: 1 } });
-        const usersEvents = ((uList.data?.users as UserLite[] | undefined) || []).slice(0, 5).map((it) => ({
-          title: `Nuevo usuario: ${it.fullname || it.email}`,
-          level: 'Info' as const,
-          when: it.createdAt || new Date().toISOString(),
-        }));
-        type PatientLite = { firstName: string; lastName: string; createdAt?: string };
-        const patientEvents = ((pList.data?.patients as PatientLite[] | undefined) || []).slice(0, 5).map((it) => ({
-          title: `Nuevo paciente: ${it.firstName} ${it.lastName}`,
-          level: 'Info' as const,
-          when: it.createdAt || new Date().toISOString(),
-        }));
-        const merged = [...usersEvents, ...patientEvents].sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime()).slice(0, 6);
+        const pList = await api.get('/users/patients', {
+          params: { limit: 10, page: 1 },
+        });
+        const usersEvents = (
+          (uList.data?.users as UserLite[] | undefined) || []
+        )
+          .slice(0, 5)
+          .map(it => ({
+            title: `Nuevo usuario: ${it.fullname || it.email}`,
+            level: 'Info' as const,
+            when: it.createdAt || new Date().toISOString(),
+          }));
+        type PatientLite = {
+          firstName: string;
+          lastName: string;
+          createdAt?: string;
+        };
+        const patientEvents = (
+          (pList.data?.patients as PatientLite[] | undefined) || []
+        )
+          .slice(0, 5)
+          .map(it => ({
+            title: `Nuevo paciente: ${it.firstName} ${it.lastName}`,
+            level: 'Info' as const,
+            when: it.createdAt || new Date().toISOString(),
+          }));
+        const merged = [...usersEvents, ...patientEvents]
+          .sort(
+            (a, b) => new Date(b.when).getTime() - new Date(a.when).getTime()
+          )
+          .slice(0, 6);
         setFeed(merged);
       } catch {
         // silencioso en panel
@@ -54,9 +89,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex">
-    
-      
-
       <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
         {/* El Sidebar se renderiza globalmente en App.tsx; aquí solo el contenido del dashboard */}
         {/* Tarjeta de Perfil */}
@@ -68,8 +100,12 @@ const AdminDashboard = () => {
             <div>
               <div className="text-lg font-semibold">{displayName}</div>
               <div className="mt-1 flex items-center gap-2">
-                <span className="px-2 py-0.5 text-xs rounded-full bg-slate-600">Administrador</span>
-                <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500 text-white">Activo</span>
+                <span className="px-2 py-0.5 text-xs rounded-full bg-slate-600">
+                  Administrador
+                </span>
+                <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500 text-white">
+                  Activo
+                </span>
               </div>
             </div>
           </div>
@@ -94,7 +130,11 @@ const AdminDashboard = () => {
           {/* Gráfico de barras estático */}
           <div className="mt-4 h-40 flex items-end gap-2">
             {[20, 35, 30, 45, 50, 38, 60, 48, 72, 66, 70, 64].map((h, i) => (
-              <div key={i} className="flex-1 bg-slate-200 rounded-t" style={{ height: `${h}%` }} />
+              <div
+                key={i}
+                className="flex-1 bg-slate-200 rounded-t"
+                style={{ height: `${h}%` }}
+              />
             ))}
           </div>
         </section>
@@ -118,9 +158,16 @@ const AdminDashboard = () => {
         <section className="mt-8 bg-white p-6 rounded-xl border">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Carga Masiva</h3>
-            <a href="/admin/carga" className="px-3 py-2 bg-slate-800 text-white rounded text-sm">Ir a Carga</a>
+            <a
+              href="/admin/carga"
+              className="px-3 py-2 bg-slate-800 text-white rounded text-sm"
+            >
+              Ir a Carga
+            </a>
           </div>
-          <p className="text-sm text-slate-600 mt-2">Administra la importación de pacientes desde el apartado dedicado.</p>
+          <p className="text-sm text-slate-600 mt-2">
+            Administra la importación de pacientes desde el apartado dedicado.
+          </p>
         </section>
 
         {/* Secciones inferiores */}
@@ -128,20 +175,39 @@ const AdminDashboard = () => {
           <section className="bg-white p-6 rounded-xl border lg:col-span-2">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Actividad reciente</h3>
-              <Link to="/admin/usuarios" className="px-3 py-2 bg-slate-800 text-white rounded text-sm">Ver más</Link>
+              <Link
+                to="/admin/usuarios"
+                className="px-3 py-2 bg-slate-800 text-white rounded text-sm"
+              >
+                Ver más
+              </Link>
             </div>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
               {feed.map((i, idx) => (
                 <div key={idx} className="p-4 rounded-lg border bg-slate-50">
                   <div className="flex items-center justify-between">
-                    <div className="font-semibold text-slate-800 text-sm pr-2">{i.title}</div>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${i.level === 'Alerta' ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-800'}`}>{i.level}</span>
+                    <div className="font-semibold text-slate-800 text-sm pr-2">
+                      {i.title}
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 text-xs rounded-full ${
+                        i.level === 'Alerta'
+                          ? 'bg-rose-500 text-white'
+                          : 'bg-slate-200 text-slate-800'
+                      }`}
+                    >
+                      {i.level}
+                    </span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-600">{new Date(i.when).toLocaleString()}</p>
+                  <p className="mt-2 text-xs text-slate-600">
+                    {new Date(i.when).toLocaleString()}
+                  </p>
                 </div>
               ))}
               {feed.length === 0 && (
-                <div className="p-4 rounded-lg border bg-slate-50 text-sm text-slate-600">Sin actividad reciente</div>
+                <div className="p-4 rounded-lg border bg-slate-50 text-sm text-slate-600">
+                  Sin actividad reciente
+                </div>
               )}
             </div>
           </section>
@@ -161,10 +227,38 @@ const AdminDashboard = () => {
                   strokeWidth="2"
                   points="0,80 30,60 60,65 90,40 120,50 150,35 180,45 200,30"
                 />
-                <line x1="0" y1="80" x2="200" y2="80" stroke="#e2e8f0" strokeWidth="1" />
-                <line x1="0" y1="60" x2="200" y2="60" stroke="#e2e8f0" strokeWidth="1" />
-                <line x1="0" y1="40" x2="200" y2="40" stroke="#e2e8f0" strokeWidth="1" />
-                <line x1="0" y1="20" x2="200" y2="20" stroke="#e2e8f0" strokeWidth="1" />
+                <line
+                  x1="0"
+                  y1="80"
+                  x2="200"
+                  y2="80"
+                  stroke="#e2e8f0"
+                  strokeWidth="1"
+                />
+                <line
+                  x1="0"
+                  y1="60"
+                  x2="200"
+                  y2="60"
+                  stroke="#e2e8f0"
+                  strokeWidth="1"
+                />
+                <line
+                  x1="0"
+                  y1="40"
+                  x2="200"
+                  y2="40"
+                  stroke="#e2e8f0"
+                  strokeWidth="1"
+                />
+                <line
+                  x1="0"
+                  y1="20"
+                  x2="200"
+                  y2="20"
+                  stroke="#e2e8f0"
+                  strokeWidth="1"
+                />
               </svg>
             </div>
           </section>

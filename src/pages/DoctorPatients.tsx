@@ -17,7 +17,7 @@ const DoctorPatients = () => {
     try {
       const params: Record<string, unknown> = { limit: 50, page: 1 };
       if (q.trim()) params.q = q.trim();
-      const res = await api.get('/patients', { params });
+      const res = await api.get('/users/patients', { params });
       const list = (res.data?.patients || []) as Patient[];
       setPatients(list);
       // cargar último diagnóstico por paciente (mejorable: endpoint batch)

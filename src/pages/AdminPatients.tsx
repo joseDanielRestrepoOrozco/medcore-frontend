@@ -29,7 +29,7 @@ const AdminPatients = () => {
       try {
         const params: Record<string, unknown> = { limit: 20, page: 1 };
         if (query.trim()) params.q = query.trim();
-        const res = await api.get('/patients', { params });
+        const res = await api.get('/users/patients', { params });
         const list = (res.data.patients || []) as Patient[];
         // deduplicar por id si el backend devolviera duplicados
         const uniq: Record<string, Patient> = {};

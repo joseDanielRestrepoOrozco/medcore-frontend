@@ -1,18 +1,21 @@
 import axios from 'axios';
 
-const API_BASE = '/api/v1' as const;
+const API_BASE = `${import.meta.env.VITE_API_BASE}` as const;
 
 const api = axios.create({ baseURL: API_BASE });
 
 // Adjunta el token si existe y ajusta Content-Type para FormData
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers = config.headers || {};
-    (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    (config.headers as Record<string, string>)[
+      'Authorization'
+    ] = `Bearer ${token}`;
   }
   // Si se envía FormData, deja que el navegador ponga el boundary
-  const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
+  const isFormData =
+    typeof FormData !== 'undefined' && config.data instanceof FormData;
   if (isFormData && config.headers) {
     // Axios/browsers establecerán multipart/form-data con boundary automáticamente
     delete (config.headers as Record<string, string>)['Content-Type'];
