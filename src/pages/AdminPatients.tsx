@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import Sidebar from '../components/AdminSidebar';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 type Patient = {
   id: string;
@@ -19,9 +19,12 @@ const AdminPatients = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [sidebarDesktop, setSidebarDesktop] = useState(true);
+  
+
+  const { token } = useAuth();
 
   useEffect(() => {
+    if (!token) return; // espere a tener token antes de llamar
     (async () => {
       try {
         const params: Record<string, unknown> = { limit: 20, page: 1 };
@@ -38,27 +41,10 @@ const AdminPatients = () => {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [query, token]);
 
   return (
-    <div className="flex">
-      {sidebarDesktop && (
-        <div className="hidden md:block relative">
-          <Sidebar active="pacientes" />
-        </div>
-      )}
-      <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
-        {/* botón flotante para colapsar sidebar (escritorio) */}
-        <button
-          type="button"
-          onClick={() => setSidebarDesktop((v) => !v)}
-          aria-label={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
-          title={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
-          className="hidden md:flex items-center justify-center fixed z-40 top-1/2 -translate-y-1/2 transform w-8 h-8 rounded-full border bg-white shadow"
-          style={{ left: sidebarDesktop ? '13.5rem' : '0.5rem' }}
-        >
-          <span className="text-slate-700 text-lg">{sidebarDesktop ? '⟨' : '⟩'}</span>
-        </button>
+    <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
 
         <h1 className="text-2xl font-bold mb-4">Pacientes</h1>
         <div className="mb-4 flex items-center gap-2">
@@ -104,7 +90,6 @@ const AdminPatients = () => {
           </div>
         )}
       </div>
-    </div>
   );
 };
 

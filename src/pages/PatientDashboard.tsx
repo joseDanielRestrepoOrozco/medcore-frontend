@@ -1,29 +1,15 @@
-import Sidebar from '../components/Sidebar';
 import ProfileHeader from '../components/ProfileHeader';
 import MiniCalendar from '../components/MiniCalendar';
 import { StatCard } from '../components/DashboardCards';
 import PatientSummaryCards from '../components/PatientSummaryCards';
-import { useState } from 'react';
+
 
 const PatientDashboard = () => {
   // mock data for now
   const name = 'Ana Gómez';
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
-    <div className="flex">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
-        {/* mobile toggle */}
-        <button
-          type="button"
-          className="md:hidden mb-4 px-3 py-2 rounded border bg-white"
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Abrir menú"
-        >
-          Menú
-        </button>
+    <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
         <ProfileHeader name={name} role="Paciente" />
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -79,7 +65,6 @@ const PatientDashboard = () => {
           </aside>
         </div>
       </div>
-    </div>
   );
 };
 

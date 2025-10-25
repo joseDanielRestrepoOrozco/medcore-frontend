@@ -1,4 +1,4 @@
-import Sidebar from '../components/Sidebar';
+// Sidebar is rendered globally in App.tsx
 import ProfileHeader from '../components/ProfileHeader';
 import { StatCard } from '../components/DashboardCards';
 import { useEffect, useState } from 'react';
@@ -6,19 +6,22 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const MedicoDashboard = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const name = user?.fullname || user?.email || 'Médico';
   const [specialty, setSpecialty] = useState<string>('');
   const [department, setDepartment] = useState<string>('');
   const [treatments, setTreatments] = useState<Array<{ id: string; patient?: string; treatment?: string }>>([]);
 
   useEffect(() => {
+    if (!token) return; // espere a tener token para llamadas al backend
     (async () => {
       try {
         const res = await api.get('/diagnostics/search');
-        const list = ((res.data?.diagnostics || []) as Array<any>).slice(0, 4).map((d) => ({ id: d.id, patient: d.patientId, treatment: d.treatment }));
+        const raw = (res.data?.diagnostics || []) as Array<Record<string, unknown>>;
+        const list = raw.slice(0, 4).map((d) => ({ id: String(d['id'] || ''), patient: String(d['patientId'] || d['patient'] || ''), treatment: String(d['treatment'] || '') }));
         setTreatments(list);
-      } catch {
+      } catch (err) {
+        console.debug(err);
         setTreatments([]);
       }
       try {
@@ -32,37 +35,13 @@ const MedicoDashboard = () => {
         // ignore
       }
     })();
-  }, []);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarDesktop, setSidebarDesktop] = useState(true);
+  }, [token, user?.id]);
 
   return (
-    <div className="flex">
-      {/* Sidebar */}
-      {sidebarDesktop && <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
+    <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
+      {/* Sidebar global se encarga de la navegación; aquí sólo contenido */}
 
-      <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
-        {/* mobile toggle */}
-        <button
-          type="button"
-          className="md:hidden mb-4 px-3 py-2 rounded border bg-white"
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Abrir menú"
-        >
-          Menú
-        </button>
-
-        {/* Botón flotante para colapsar sidebar (escritorio) */}
-        <button
-          type="button"
-          onClick={() => setSidebarDesktop((v) => !v)}
-          aria-label={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
-          title={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
-          className="hidden md:flex items-center justify-center fixed z-40 top-1/2 -translate-y-1/2 transform w-8 h-8 rounded-full border bg-white shadow"
-          style={{ left: sidebarDesktop ? '15.5rem' : '0.5rem' }}
-        >
-          <span className="text-slate-700 text-lg">{sidebarDesktop ? '⟨' : '⟩'}</span>
-        </button>
+        {/* Botón flotante para colapsar sidebar (gestionado globalmente en App) */}
 
         <ProfileHeader name={name} role={specialty || department || 'Médico'} />
 
@@ -91,7 +70,6 @@ const MedicoDashboard = () => {
             {treatments.length === 0 && <div className="text-slate-600">Sin tratamientos recientes</div>}
           </div>
         </section>
-      </div>
     </div>
   );
 };

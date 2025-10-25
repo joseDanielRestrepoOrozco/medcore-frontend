@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import AdminSidebar from '../components/AdminSidebar';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const displayName = user?.fullname || user?.email || 'Juan Pérez';
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarDesktop, setSidebarDesktop] = useState(true);
+  
   const [usersActive, setUsersActive] = useState<number>(0);
   const [patientsTotal, setPatientsTotal] = useState<number>(0);
   const [newUsersWeek, setNewUsersWeek] = useState<number>(0);
   const [feed, setFeed] = useState<Array<{ title: string; level: 'Info' | 'Alerta'; when: string }>>([]);
 
   useEffect(() => {
+    if (!token) return; // espere a tener token antes de cargar métricas
     (async () => {
       try {
         // Usuarios activos (ACTIVE)
@@ -51,48 +50,15 @@ const AdminDashboard = () => {
         // silencioso en panel
       }
     })();
-  }, []);
+  }, [token]);
 
   return (
     <div className="flex">
-      {/* Static sidebar on md+ */}
-      {sidebarDesktop && (
-        <div className="hidden md:block relative">
-          <AdminSidebar active="panel" />
-        </div>
-      )}
-
-      {/* Overlay sidebar on mobile */}
-      {sidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="flex-1 bg-black/30" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
-          <div className="w-72 bg-white border-l min-h-full p-0 shadow-xl">
-            <AdminSidebar active="panel" />
-          </div>
-        </div>
-      )}
+    
+      
 
       <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
-        {/* toggles */}
-        <button
-          type="button"
-          className="md:hidden mb-4 px-3 py-2 rounded border bg-white"
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Abrir menú"
-        >
-          Menú
-        </button>
-        {/* Botón flotante de colapso (escritorio) */}
-        <button
-          type="button"
-          onClick={() => setSidebarDesktop((v) => !v)}
-          aria-label={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
-          title={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
-          className="hidden md:flex items-center justify-center fixed z-40 top-1/2 -translate-y-1/2 transform w-8 h-8 rounded-full border bg-white shadow"
-          style={{ left: sidebarDesktop ? '15.5rem' : '0.5rem' }}
-        >
-          <span className="text-slate-700 text-lg">{sidebarDesktop ? '⟨' : '⟩'}</span>
-        </button>
+        {/* El Sidebar se renderiza globalmente en App.tsx; aquí solo el contenido del dashboard */}
         {/* Tarjeta de Perfil */}
         <section className="bg-slate-800 text-white rounded-2xl p-6 flex items-start justify-between">
           <div className="flex items-center gap-4">

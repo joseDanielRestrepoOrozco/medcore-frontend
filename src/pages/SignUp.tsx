@@ -62,7 +62,7 @@ const SignUp = () => {
         current_password: data.currentPassword,
         date_of_birth: data.dateOfBirth,
         role: 'ADMINISTRADOR',
-      } as unknown as any);
+      });
       navigate('/verify', { state: { email: data.email } });
       form.reset();
       sessionStorage.removeItem('signup_access');

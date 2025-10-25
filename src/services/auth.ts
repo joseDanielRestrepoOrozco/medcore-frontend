@@ -4,12 +4,11 @@ import api from './api';
 export type SignUpPayload = {
   fullname: string;
   email: string;
-  currentPassword?: string;
   current_password?: string;
   date_of_birth?: string; // YYYY-MM-DD
   role?: string;
 };
-export type LoginPayload = { email: string; currentPassword: string };
+export type LoginPayload = { email: string; current_password: string };
 export type VerifyEmailPayload = { email: string; verificationCode: string };
 export type ResendVerificationPayload = { email: string };
 

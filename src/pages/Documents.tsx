@@ -26,6 +26,9 @@ const Documents = () => {
     }
   };
 
+  // load depends on patientId; keep as-is but silence exhaustive-deps which would require
+  // wrapping load in useCallback or moving it inside the effect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [patientId]);
 
   const onDelete = async (id: string) => {

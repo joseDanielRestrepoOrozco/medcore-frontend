@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import AdminSidebar from '../components/AdminSidebar';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 type User = {
@@ -15,7 +15,10 @@ const UsersNurses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { token } = useAuth();
+
   useEffect(() => {
+    if (!token) return;
     (async () => {
       setLoading(true);
       setError(null);
@@ -28,14 +31,10 @@ const UsersNurses = () => {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [token]);
 
   return (
-    <div className="flex">
-      <div className="hidden md:block">
-        <AdminSidebar active="usuarios" />
-      </div>
-      <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
+    <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Enfermeras</h1>
           <Link to="/dashboard/users/new" className="px-3 py-2 text-sm bg-slate-800 text-white rounded">
@@ -73,7 +72,6 @@ const UsersNurses = () => {
           </div>
         )}
       </div>
-    </div>
   );
 };
 

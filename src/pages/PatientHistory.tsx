@@ -18,12 +18,13 @@ const PatientHistory = () => {
         setLoading(true);
         setError(null);
         const res = await api.get('/diagnostics/search', { params: { patientId } });
-        const arr = ((res.data?.diagnostics || []) as Array<any>).map((d) => ({
-          id: d.id,
-          when: d.diagnosticDate || d.createdAt,
-          title: d.title,
-          diagnosis: d.diagnosis,
-          treatment: d.treatment,
+        const raw = (res.data?.diagnostics || []) as Array<Record<string, unknown>>;
+        const arr = raw.map((d) => ({
+          id: String(d['id'] || ''),
+          when: String(d['diagnosticDate'] || d['createdAt'] || ''),
+          title: String(d['title'] || ''),
+          diagnosis: String(d['diagnosis'] || ''),
+          treatment: String(d['treatment'] || ''),
         }));
         setList(arr);
       } catch {

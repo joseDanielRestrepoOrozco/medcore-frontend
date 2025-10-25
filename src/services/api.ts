@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-// Garantizar que el frontend SIEMPRE apunte al API Gateway en :3000
-// y use el prefijo unificado "/api/v1/<prefijo>/..." (auth, users, patients, diagnostics)
-const API_BASE = 'http://localhost:3000/api/v1' as const;
+const API_BASE = '/api/v1' as const;
 
 const api = axios.create({ baseURL: API_BASE });
 

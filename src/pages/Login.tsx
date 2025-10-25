@@ -17,13 +17,9 @@ const Login = () => {
 
   const schema = z.object({
     email: z.email({ message: 'Correo inválido' }),
-    currentPassword: z
-      .string()
-      .min(1, { message: 'Contraseña requerida' })
-      .max(15, { message: 'Máximo 15 caracteres' })
-      .refine(val => /\d/.test(val), {
-        message: 'Debe contener al menos un número',
-      }),
+    // La validación del backend solo requiere un string; relajamos la validación
+    // para permitir contraseñas de pacientes/enfermeras que no cumplan el patrón.
+    currentPassword: z.string().min(1, { message: 'Contraseña requerida' }).max(100, { message: 'Máximo 100 caracteres' }),
   });
 
   const form = useForm({
@@ -43,7 +39,7 @@ const Login = () => {
     try {
       const res = await login({
         email: data.email,
-        currentPassword: data.currentPassword,
+        current_password: data.currentPassword,
       });
       const token = res.data.token;
       const user = res.data.user;

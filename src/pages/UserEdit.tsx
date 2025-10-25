@@ -56,7 +56,8 @@ const UserEdit = () => {
           setEmail(u.email || '');
           setFullname(u.fullname || '');
           setPhone(u.phone || '');
-          setStatus(((u.status || 'ACTIVE') as string).toUpperCase() as any);
+          const st = ((u.status || 'ACTIVE') as string).toUpperCase();
+          setStatus((st as 'ACTIVE' | 'INACTIVE' | 'PENDING'));
           setSpecialization(u.specialization || '');
           setDepartment(u.department || '');
           setLicense(u.license_number || '');
@@ -160,7 +161,11 @@ const UserEdit = () => {
           )}
           <div>
             <label className="block text-sm font-medium">Estado</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="w-full border rounded px-3 py-2">
+            <select
+              value={status}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as 'ACTIVE' | 'INACTIVE' | 'PENDING')}
+              className="w-full border rounded px-3 py-2"
+            >
               <option value="ACTIVE">ACTIVO</option>
               <option value="INACTIVE">INACTIVO</option>
               <option value="PENDING">PENDIENTE</option>

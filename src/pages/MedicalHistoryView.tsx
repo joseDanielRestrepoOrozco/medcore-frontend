@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
 import { getErrorMessage } from '../utils/error';
+import { useAuth } from '../context/AuthContext';
 
 type HistoryEntry = {
   id: string;
@@ -33,30 +34,50 @@ const MedicalHistoryView = () => {
     age?: number;
     state?: string;
   } | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
     const load = async () => {
+      if (!token) return;
       if (!patientId) return;
       setLoading(true);
       setError(null);
       try {
         // Nueva fuente: /api/v1/diagnostics/search?patientId=...
         const res = await api.get(`/diagnostics/search`, { params: { patientId } });
-        const list = ((res.data?.diagnostics || []) as Array<any>).map((d) => ({
-          id: d.id,
-          date: d.diagnosticDate || d.createdAt,
-          doctorName: d.doctorId ? 'Médico' : 'Médico',
-          summary: d.description,
-          diagnosis: d.diagnosis,
-          treatment: d.treatment,
+        const rawList = (res.data?.diagnostics || []) as Array<Record<string, unknown>>;
+        const list = rawList.map((d) => ({
+          id: String(d['id'] || ''),
+          date: String(d['diagnosticDate'] || d['createdAt'] || ''),
+          doctorName: 'Médico',
+          summary: String(d['description'] || ''),
+          diagnosis: String(d['diagnosis'] || ''),
+          treatment: String(d['treatment'] || ''),
         }));
         setEntries(list);
         // documentos adjuntos del paciente
-        await loadDocs(patientId);
+        try {
+          const docsArr = await loadDocs(patientId);
+          setDocs(docsArr.map((d) => ({ id: String(d.id || ''), filename: String(d.filename || ''), mimeType: String(d.mimeType || ''), fileSize: Number(d.fileSize || 0), createdAt: d.createdAt ? String(d.createdAt) : undefined })));
+        } catch (err) {
+          console.debug(err);
+        }
         // datos del paciente (nombre, edad, etc.)
         try {
           const rp = await api.get(`/patients/${patientId}`);
-          const pdata = (rp.data?.patient || rp.data) as any;
+          const pdataRaw = (rp.data?.patient || rp.data) as Record<string, unknown> | null;
+          const pdata = pdataRaw
+            ? {
+                id: String(pdataRaw['id'] || ''),
+                firstName: String(pdataRaw['firstName'] || pdataRaw['first_name'] || ''),
+                lastName: String(pdataRaw['lastName'] || pdataRaw['last_name'] || ''),
+                email: String(pdataRaw['email'] || ''),
+                phone: String(pdataRaw['phone'] || ''),
+                gender: String(pdataRaw['gender'] || ''),
+                age: typeof pdataRaw['age'] === 'number' ? (pdataRaw['age'] as number) : pdataRaw['age'] ? Number(pdataRaw['age']) : undefined,
+                state: String(pdataRaw['state'] || ''),
+              }
+            : null;
           setPatient(pdata || null);
         } catch (err) {
           // muestra un mensaje suave si falla
@@ -69,10 +90,10 @@ const MedicalHistoryView = () => {
       }
     };
     load();
-  }, [patientId]);
+  }, [patientId, token]);
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6">
+    <div className="flex-1 max-w-5xl mx-auto p-4 md:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Historia Clínica</h1>
         <div className="flex items-center gap-2">
@@ -162,7 +183,7 @@ const MedicalHistoryView = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setPreview({ id: d.id, filename: d.filename, mimeType: d.mimeType })} className="text-sm px-3 py-1 border rounded">Ver</button>
-                    <button onClick={async () => { try { await api.delete(`/documents/${d.id}`); await loadDocs(patientId!); } catch {} }} className="text-sm px-3 py-1 border rounded text-rose-600">Eliminar</button>
+                    <button onClick={async () => { try { await api.delete(`/documents/${d.id}`); const docsArr = await loadDocs(patientId!); setDocs(docsArr.map((dd) => ({ id: String(dd['id'] || ''), filename: String(dd['filename'] || ''), mimeType: String(dd['mimeType'] || dd['fileType'] || ''), fileSize: Number(dd['fileSize'] || 0), createdAt: dd['createdAt'] ? String(dd['createdAt']) : undefined }))); } catch (err) { console.debug(err); } }} className="text-sm px-3 py-1 border rounded text-rose-600">Eliminar</button>
                   </div>
                 </div>
               ))}
@@ -226,8 +247,8 @@ const MedicalHistoryView = () => {
               <button className="px-3 py-1 border rounded" onClick={() => setPreview(null)}>Cerrar</button>
             </div>
             <div className="w-full h-full border">
-              <object data={`${location.origin.replace(/:\\d+$/, ':3000')}/api/v1/documents/${preview.id}`} type={preview.mimeType || 'application/pdf'} className="w-full h-full">
-                <iframe src={`${location.origin.replace(/:\\d+$/, ':3000')}/api/v1/documents/${preview.id}`} title="preview" className="w-full h-full" />
+              <object data={`${location.origin.replace(/:\\d+$/, ':3000')}/api/v1/documents/${preview.id}${token ? `?token=${token}` : ''}`} type={preview.mimeType || 'application/pdf'} className="w-full h-full">
+                <iframe src={`${location.origin.replace(/:\\d+$/, ':3000')}/api/v1/documents/${preview.id}${token ? `?token=${token}` : ''}`} title="preview" className="w-full h-full" />
               </object>
             </div>
           </div>
@@ -237,10 +258,10 @@ const MedicalHistoryView = () => {
   );
 };
 
-async function loadDocs(pid: string) {
+async function loadDocs(pid: string): Promise<Array<Record<string, unknown>>> {
   const r2 = await api.get(`/documents/patient/${pid}`);
-  const arr = (r2.data?.data || r2.data?.documents || []) as Array<any>;
-  (window as any).__setDocs && (window as any).__setDocs(arr);
+  const arr = (r2.data?.data || r2.data?.documents || []) as Array<Record<string, unknown>>;
+  return arr;
 }
 
 export default MedicalHistoryView;

@@ -25,11 +25,12 @@ const DoctorPatients = () => {
       for (const p of list) {
         try {
           const r = await api.get('/diagnostics/search', { params: { patientId: p.id } });
-          const arr = (r.data?.diagnostics || []) as Array<any>;
+          const arr = (r.data?.diagnostics || []) as Array<Record<string, unknown>>;
           const last = arr[0] || null;
-          map[p.id] = last ? { diagnosis: last.diagnosis, treatment: last.treatment } : {};
-        } catch {
-          // ignore
+          map[p.id] = last ? { diagnosis: (last.diagnosis as string) || undefined, treatment: (last.treatment as string) || undefined } : {};
+        } catch (err) {
+          // ignore individual patient diagnostic errors
+          console.debug(err);
         }
       }
       setLatest(map);
@@ -40,6 +41,8 @@ const DoctorPatients = () => {
     }
   };
 
+  // load is stable for this component; we intentionally call it once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 
   return (

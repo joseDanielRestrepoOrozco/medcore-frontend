@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import AdminSidebar from '../components/AdminSidebar';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 type User = {
@@ -18,11 +18,10 @@ const ROLE_LABEL: Record<string, string> = {
   PACIENTE: 'Paciente',
 };
 
-const roleOptions = ['ADMINISTRADOR', 'MEDICO', 'ENFERMERA'] as const;
+// roleOptions removed: no está siendo usado en la UI actualmente
 
 const AdminUsers = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarDesktop, setSidebarDesktop] = useState(true);
+  
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,22 +58,15 @@ const AdminUsers = () => {
     }
   };
 
+  const { token } = useAuth();
+
   useEffect(() => {
+    if (!token) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [filter, token]);
 
-  const changeRole = async (id: string, role: string) => {
-    setSavingId(id);
-    try {
-      await api.put(`/users/${id}/role`, { role });
-      await load();
-    } catch {
-      setError('No fue posible cambiar el rol');
-    } finally {
-      setSavingId(null);
-    }
-  };
+  // changeRole removed: funcionalidad no utilizada en la UI actual
 
   const tabs = useMemo(
     () => [
@@ -87,35 +79,8 @@ const AdminUsers = () => {
   );
 
   return (
-    <div className="flex">
-      {sidebarDesktop && (
-        <div className="hidden md:block relative">
-          <AdminSidebar active="usuarios" />
-        </div>
-      )}
-      {sidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="flex-1 bg-black/30" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
-          <div className="w-72 bg-white border-l min-h-full p-0 shadow-xl">
-            <AdminSidebar active="usuarios" />
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
-        <button type="button" className="md:hidden mb-4 px-3 py-2 rounded border bg-white" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">Menú</button>
-        {/* Botón flotante de colapso (escritorio) */}
-        <button
-          type="button"
-          onClick={() => setSidebarDesktop((v) => !v)}
-          aria-label={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
-          title={sidebarDesktop ? 'Ocultar menú' : 'Mostrar menú'}
-          className="hidden md:flex items-center justify-center fixed z-40 top-1/2 -translate-y-1/2 transform w-8 h-8 rounded-full border bg-white shadow"
-          style={{ left: sidebarDesktop ? '15.5rem' : '0.5rem' }}
-        >
-          <span className="text-slate-700 text-lg">{sidebarDesktop ? '⟨' : '⟩'}</span>
-        </button>
-        <div className="flex items-center justify-between">
+    <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
+      <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Usuarios</h1>
           <a href="/dashboard/users/new" className="px-3 py-2 text-sm bg-slate-800 text-white rounded">Nuevo usuario</a>
         </div>
@@ -200,7 +165,6 @@ const AdminUsers = () => {
             </table>
           </div>
         )}
-      </div>
     </div>
   );
 };

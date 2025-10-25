@@ -1,13 +1,52 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+interface SidebarItem {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  to: string;
+}
 
 type SidebarProps = {
   open?: boolean;
   onClose?: () => void;
+  collapsed?: boolean;
+  onToggle?: () => void;
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ open = false, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  open = false,
+  onClose,
+  collapsed: propCollapsed,
+  onToggle,
+}) => {
+  // Estado local para el colapso si no se provee desde props
+  const [localCollapsed, setLocalCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sidebarCollapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const collapsed = propCollapsed ?? localCollapsed;
+  const handleToggle = () => {
+    try {
+      localStorage.setItem('sidebarCollapsed', (!collapsed).toString());
+    } catch {
+      // ignore localStorage errors
+    }
+    if (onToggle) onToggle();
+    else setLocalCollapsed(!collapsed);
+  };
+
+  // Si no hay sesión, no renderizar
+  const { user } = useAuth();
+  if (!user) return null;
+
+  const role = String(user?.role || '').toUpperCase();
+
   const IconFile = (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 3h6l4 4v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
@@ -35,47 +74,93 @@ const Sidebar: React.FC<SidebarProps> = ({ open = false, onClose }) => {
     </svg>
   );
 
-  const items = [
-    { key: 'historia', label: 'Historia Clínica', icon: IconFile, to: '/dashboard/medical-history/new' },
-    { key: 'pacientes', label: 'Pacientes', icon: IconFile, to: '/medico/pacientes' },
-    { key: 'mihistoria', label: 'Mi Historia', icon: IconFile, to: '/patient/history' },
-    { key: 'signos', label: 'Signos Vitales', icon: IconHeart, to: '#' },
-    { key: 'medicamentos', label: 'Medicamentos', icon: IconPill, to: '#' },
-    { key: 'calendario', label: 'Agenda', icon: IconCalendar, to: '/dashboard/agenda' },
-    { key: 'alertas', label: 'Alertas', icon: IconBell, to: '#' },
-  ];
+  // Items por rol
+  const roleItems: SidebarItem[] = (() => {
+    switch (role) {
+      case 'ADMINISTRADOR':
+        return [
+          { key: 'admin_panel', label: 'Panel Admin', icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-6h6v6M9 7h6M5 21h14V3H5v18z" />
+            </svg>
+          ), to: '/admin' },
+          { key: 'admin_users', label: 'Usuarios', icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M12 12a4 4 0 100-8 4 4 0 000 8z" />
+            </svg>
+          ), to: '/admin/usuarios' },
+          { key: 'admin_pacientes', label: 'Pacientes', icon: IconFile, to: '/admin/pacientes' },
+          { key: 'admin_carga', label: 'Carga Masiva', icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 1.343-3 3h6c0-1.657-1.343-3-3-3zM5 10h14v10H5zM8 4h8l1 4H7l1-4z" />
+            </svg>
+          ), to: '/admin/carga' }
+        ];
+      case 'MEDICO':
+        return [
+          { key: 'historia', label: 'Historia Clínica', icon: IconFile, to: '/dashboard/medical-history/new' },
+          { key: 'pacientes', label: 'Pacientes', icon: IconFile, to: '/medico/pacientes' },
+          { key: 'calendario', label: 'Agenda', icon: IconCalendar, to: '/dashboard/agenda' }
+        ];
+      case 'ENFERMERA':
+        return [
+          { key: 'pacientes', label: 'Pacientes', icon: IconFile, to: '/medico/pacientes' },
+          { key: 'signos', label: 'Signos Vitales', icon: IconHeart, to: '#' },
+          { key: 'medicamentos', label: 'Medicamentos', icon: IconPill, to: '#' }
+        ];
+      case 'PACIENTE':
+        return [
+          { key: 'mihistoria', label: 'Mi Historia', icon: IconFile, to: '/patient/history' },
+          { key: 'calendario', label: 'Agenda', icon: IconCalendar, to: '/dashboard/agenda' },
+          { key: 'alertas', label: 'Alertas', icon: IconBell, to: '#' }
+        ];
+      default:
+        return [];
+    }
+  })();
 
-  const { user } = useAuth();
-  const role = String(user?.role || '').toUpperCase();
-  const visibleItems = items.filter((it) => {
-    if (it.key === 'historia' && role === 'ENFERMERA') return false;
-    // Pacientes: solo para Médico/Admin (no Enfermera)
-    if (it.key === 'pacientes' && !(role === 'MEDICO' || role === 'ADMINISTRADOR')) return false;
-    if (it.key === 'mihistoria' && role !== 'PACIENTE') return false;
-    return true;
-  });
+  const widthClass = collapsed ? 'w-12' : 'w-56';
 
   return (
     <>
-      {/* Static sidebar on md+ */}
+      {/* Persistent sidebar */}
       <aside
-        className="hidden md:block sticky top-24 w-56 bg-[var(--mc-muted)] border-r border-slate-200 px-4 py-0 h-[calc(100vh-6rem)] overflow-y-auto"
+        className={`${widthClass} sticky top-24 bg-[var(--mc-muted)] border-r border-slate-200 px-2 py-2 h-[calc(100vh-6rem)] overflow-y-auto transition-all`}
       >
-        <nav className="space-y-2">
-          {visibleItems.map((item) => (
+        <div className="flex items-center justify-between mb-4 px-2">
+          {!collapsed && <span className="font-semibold">Menú</span>}
+          <button
+            type="button"
+            onClick={handleToggle}
+            aria-label={collapsed ? 'Mostrar sidebar' : 'Ocultar sidebar'}
+            className="p-1 rounded hover:bg-slate-100"
+          >
+            {/* simple arrow */}
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">{
+              collapsed ? (
+                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M8 5l8 7-8 7" />
+              ) : (
+                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M16 5l-8 7 8 7" />
+              )}
+            </svg>
+          </button>
+        </div>
+
+        <nav className="space-y-2 px-1">
+          {roleItems.map((item: SidebarItem) => (
             <Link
               key={item.key}
               to={item.to || '#'}
-              className="flex items-center gap-2 px-3 py-2 rounded text-sm text-slate-700 hover:bg-white/70"
+              className={`flex items-center gap-2 px-3 py-2 rounded text-sm text-slate-700 hover:bg-white/70 ${collapsed ? 'justify-center' : ''}`}
             >
               <span className="text-slate-500">{item.icon}</span>
-              <span>{item.label}</span>
+              {!collapsed && <span>{item.label}</span>}
             </Link>
           ))}
         </nav>
       </aside>
 
-      {/* Overlay sidebar on mobile */}
+      {/* Overlay sidebar on mobile when open flag is true (kept for accessibility) */}
       {open && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           {/* backdrop */}
@@ -98,7 +183,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open = false, onClose }) => {
               </button>
             </div>
             <nav className="space-y-2">
-              {visibleItems.map((item) => (
+              {roleItems.map((item: SidebarItem) => (
                 <Link
                   key={item.key}
                   to={item.to || '#'}
