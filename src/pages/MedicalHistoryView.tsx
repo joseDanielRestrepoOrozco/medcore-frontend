@@ -1,32 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
-import { getErrorMessage } from '../utils/error';
 import { useAuth } from '../context/AuthContext';
+import type { Diagnostic } from '../types/Diagnostic';
 
-type HistoryEntry = {
-  id: string;
-  date?: string;
-  doctorName?: string;
-  summary?: string;
-  diagnosis?: string;
-  treatment?: string;
+type Pagination = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 };
 
 const MedicalHistoryView = () => {
   const { patientId } = useParams<{ patientId: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [entries, setEntries] = useState<HistoryEntry[]>([]);
-  const [docs, setDocs] = useState<
-    Array<{
-      id: string;
-      filename: string;
-      mimeType?: string;
-      fileSize?: number;
-      createdAt?: string;
-    }>
-  >([]);
+  const [entries, setEntries] = useState<Diagnostic[]>([]);
   const [preview, setPreview] = useState<{
     id: string;
     filename: string;
@@ -34,10 +25,6 @@ const MedicalHistoryView = () => {
   } | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
-  const [newFiles, setNewFiles] = useState<File[]>([]);
-  const [dragOver, setDragOver] = useState(false);
-  const [msgDoc, setMsgDoc] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [patient, setPatient] = useState<{
     id?: string;
     firstName?: string;
@@ -49,55 +36,35 @@ const MedicalHistoryView = () => {
     state?: string;
   } | null>(null);
   const { token } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<Pagination>({
+    total: 0,
+    page: 1,
+    limit: 5,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  });
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(
+    async (page: number = 1) => {
       if (!token) return;
       if (!patientId) return;
       setLoading(true);
       setError(null);
       try {
-        // Nueva fuente: /api/v1/diagnostics/search?patientId=...
         const res = await api.get(
-          `/diagnostics/documents/patient/${patientId}`
+          `/diagnostics/documents/patient/${patientId}`,
+          {
+            params: { page, limit: 5 },
+          }
         );
-        const rawList = (res.data?.data || []) as Array<
-          Record<string, unknown>
-        >;
-        const list = rawList.map(d => ({
-          id: String(d['id'] || ''),
-          date: String(d['diagnosticDate'] || d['createdAt'] || ''),
-          doctorName: 'Médico',
-          summary: String(d['description'] || ''),
-          diagnosis: String(d['diagnosis'] || ''),
-          treatment: String(d['treatment'] || ''),
-        }));
-        setEntries(list);
-        // documentos adjuntos del paciente - mapear desde diagnosticDocuments
-        try {
-          // Extraer todos los documentos de los diagnósticos
-          const allDocs: Array<Record<string, unknown>> = [];
-          rawList.forEach(diagnostic => {
-            const diagnosticDocs = diagnostic['documents'] as
-              | Array<Record<string, unknown>>
-              | undefined;
-            if (diagnosticDocs && Array.isArray(diagnosticDocs)) {
-              allDocs.push(...diagnosticDocs);
-            }
-          });
+        setEntries(res.data?.data || []);
 
-          setDocs(
-            allDocs.map(d => ({
-              id: String(d.id || ''),
-              filename: String(d.filename || d.fileName || ''),
-              mimeType: String(d.mimeType || d.fileType || ''),
-              fileSize: Number(d.fileSize || 0),
-              createdAt: d.createdAt ? String(d.createdAt) : undefined,
-            }))
-          );
-        } catch (err) {
-          console.debug(err);
+        if (res.data?.pagination) {
+          setPagination(res.data.pagination);
         }
+
         // datos del paciente (nombre, edad, etc.)
         try {
           const rp = await api.get(`/users/patients/${patientId}`);
@@ -127,18 +94,21 @@ const MedicalHistoryView = () => {
               }
             : null;
           setPatient(pdata || null);
-        } catch (err) {
+        } catch {
           // muestra un mensaje suave si falla
-          setMsgDoc(getErrorMessage(err as unknown));
         }
       } catch {
         setError('No se pudo cargar la historia clínica');
       } finally {
         setLoading(false);
       }
-    };
-    load();
-  }, [patientId, token]);
+    },
+    [patientId, token]
+  );
+
+  useEffect(() => {
+    load(currentPage);
+  }, [currentPage, load]);
 
   // Función para cargar el documento como blob
   const handlePreview = async (doc: {
@@ -164,7 +134,6 @@ const MedicalHistoryView = () => {
       setPreviewUrl(url);
     } catch (err) {
       console.error('Error al cargar el documento:', err);
-      setMsgDoc(getErrorMessage(err));
       setPreview(null);
     } finally {
       setLoadingPreview(false);
@@ -230,10 +199,16 @@ const MedicalHistoryView = () => {
                       className={`px-2 py-0.5 text-xs rounded-full ${
                         patient.state === 'ACTIVE'
                           ? 'bg-emerald-100 text-emerald-700'
+                          : patient.state === 'PENDING'
+                          ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-slate-200 text-slate-700'
                       }`}
                     >
-                      {patient.state === 'ACTIVE' ? 'ACTIVO' : 'INACTIVO'}
+                      {patient.state === 'ACTIVE'
+                        ? 'ACTIVO'
+                        : patient.state === 'PENDING'
+                        ? 'PENDIENTE'
+                        : 'INACTIVO'}
                     </span>
                   )}
                 </div>
@@ -249,9 +224,13 @@ const MedicalHistoryView = () => {
             <div key={e.id} className="bg-white border rounded p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-slate-500">{e.date || '-'}</div>
+                  <div className="text-sm text-slate-500">
+                    {e.diagnosticDate
+                      ? new Date(e.diagnosticDate).toLocaleDateString()
+                      : '-'}
+                  </div>
                   <div className="font-semibold">
-                    {e.doctorName || 'Médico'}
+                    {e.title || 'Consulta médica'}
                   </div>
                 </div>
                 <Link
@@ -261,7 +240,9 @@ const MedicalHistoryView = () => {
                   Editar
                 </Link>
               </div>
-              {e.summary && <p className="mt-2 text-slate-700">{e.summary}</p>}
+              {e.description && (
+                <p className="mt-2 text-slate-700">{e.description}</p>
+              )}
               {/* Cards de diagnóstico y tratamientos */}
               <div className="mt-3 grid md:grid-cols-2 gap-3">
                 <div className="border rounded p-3 bg-slate-50">
@@ -273,222 +254,222 @@ const MedicalHistoryView = () => {
                   <div className="text-sm">{e.treatment || '-'}</div>
                 </div>
               </div>
-            </div>
-          ))}
-          {/* Gestor de documentos adjuntos */}
-          <div className="bg-white border rounded p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Documentos adjuntos</h3>
-              <Link
-                to={`/dashboard/documents/${patientId}`}
-                className="text-sm px-3 py-1 border rounded"
-              >
-                Gestionar
-              </Link>
-            </div>
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-              {docs.map(d => (
-                <div
-                  key={d.id}
-                  className="border rounded p-3 bg-slate-50 flex items-center justify-between gap-3"
-                >
-                  <div className="flex-1">
-                    <div
-                      className="text-sm font-medium truncate"
-                      title={d.filename}
-                    >
-                      {d.filename}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {d.mimeType || ''}{' '}
-                      {d.fileSize
-                        ? `• ${(d.fileSize / 1024).toFixed(1)} KB`
-                        : ''}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() =>
-                        handlePreview({
-                          id: d.id,
-                          filename: d.filename,
-                          mimeType: d.mimeType,
-                        })
-                      }
-                      className="text-sm px-3 py-1 border rounded"
-                    >
-                      Ver
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await api.delete(`/diagnostics/documents/${d.id}`);
-                          // Recargar documentos
-                          const res = await api.get(
-                            `/diagnostics/documents/patient/${patientId}`
-                          );
-                          const rawList = (res.data?.data || []) as Array<
-                            Record<string, unknown>
-                          >;
-                          const allDocs: Array<Record<string, unknown>> = [];
-                          rawList.forEach(diagnostic => {
-                            const diagnosticDocs = diagnostic['documents'] as
-                              | Array<Record<string, unknown>>
-                              | undefined;
-                            if (
-                              diagnosticDocs &&
-                              Array.isArray(diagnosticDocs)
-                            ) {
-                              allDocs.push(...diagnosticDocs);
+              {/* Documentos del diagnóstico */}
+              <div className="mt-4">
+                <div className="font-semibold mb-2 text-sm">Documentos</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {e.documents && e.documents.length > 0 ? (
+                    e.documents.map(d => (
+                      <div
+                        key={d.id}
+                        className="border rounded p-3 bg-slate-50 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex-1">
+                          <div
+                            className="text-sm font-medium truncate"
+                            title={d.filename}
+                          >
+                            {d.filename}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {d.mimeType || ''}{' '}
+                            {d.fileSize
+                              ? `• ${(d.fileSize / 1024).toFixed(1)} KB`
+                              : ''}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              handlePreview({
+                                id: d.id,
+                                filename: d.filename,
+                                mimeType: d.mimeType,
+                              })
                             }
-                          });
-                          setDocs(
-                            allDocs.map(dd => ({
-                              id: String(dd['id'] || ''),
-                              filename: String(
-                                dd['filename'] || dd['fileName'] || ''
-                              ),
-                              mimeType: String(
-                                dd['mimeType'] || dd['fileType'] || ''
-                              ),
-                              fileSize: Number(dd['fileSize'] || 0),
-                              createdAt: dd['createdAt']
-                                ? String(dd['createdAt'])
-                                : undefined,
-                            }))
-                          );
-                        } catch (err) {
-                          console.debug(err);
-                          setMsgDoc(getErrorMessage(err));
-                        }
-                      }}
-                      className="text-sm px-3 py-1 border rounded text-rose-600"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {docs.length === 0 && (
-                <div className="text-slate-600">Sin documentos</div>
-              )}
-            </div>
-            {/* Uploader rápido */}
-            <div className="mt-4">
-              <div
-                role="button"
-                tabIndex={0}
-                onDragEnter={e => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragOver(true);
-                }}
-                onDragOver={e => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.dataTransfer.dropEffect = 'copy';
-                  setDragOver(true);
-                }}
-                onDragLeave={e => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragOver(false);
-                }}
-                onDrop={e => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragOver(false);
-                  const dropped = Array.from(e.dataTransfer.files || []);
-                  if (dropped.length)
-                    setNewFiles(prev => [...prev, ...dropped]);
-                }}
-                className={`mt-2 border-2 border-dashed rounded p-4 text-center transition ${
-                  dragOver ? 'border-slate-800 bg-slate-50' : 'border-slate-300'
-                }`}
-              >
-                Arrastra y suelta archivos aquí, o selecciona
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={e =>
-                    setNewFiles(prev => [
-                      ...prev,
-                      ...Array.from(e.target.files || []),
-                    ])
-                  }
-                  className="sr-only"
-                />
-              </div>
-              {newFiles.length > 0 && (
-                <div className="mt-2">
-                  <ul className="text-sm text-slate-600 list-disc list-inside">
-                    {newFiles.map((f, i) => (
-                      <li key={i}>
-                        {f.name} ({(f.size / 1024).toFixed(1)} KB)
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    disabled={uploading}
-                    onClick={async () => {
-                      try {
-                        setUploading(true);
-                        setMsgDoc(null);
-                        const fd = new FormData();
-                        fd.append('patientId', patientId!);
-                        newFiles.forEach(f =>
-                          fd.append('documents', f, f.name)
-                        );
-                        await api.post('/diagnostics/documents/upload', fd);
-                        setNewFiles([]);
-                        // Recargar documentos
-                        const res = await api.get(
-                          `/diagnostics/documents/patient/${patientId}`
-                        );
-                        const rawList = (res.data?.data || []) as Array<
-                          Record<string, unknown>
-                        >;
-                        const allDocs: Array<Record<string, unknown>> = [];
-                        rawList.forEach(diagnostic => {
-                          const diagnosticDocs = diagnostic['documents'] as
-                            | Array<Record<string, unknown>>
-                            | undefined;
-                          if (diagnosticDocs && Array.isArray(diagnosticDocs)) {
-                            allDocs.push(...diagnosticDocs);
-                          }
-                        });
-                        setDocs(
-                          allDocs.map(d => ({
-                            id: String(d.id || ''),
-                            filename: String(d.filename || d.fileName || ''),
-                            mimeType: String(d.mimeType || d.fileType || ''),
-                            fileSize: Number(d.fileSize || 0),
-                            createdAt: d.createdAt
-                              ? String(d.createdAt)
-                              : undefined,
-                          }))
-                        );
-                        setMsgDoc('Documentos subidos');
-                      } catch (err) {
-                        setMsgDoc(getErrorMessage(err));
-                      } finally {
-                        setUploading(false);
-                      }
-                    }}
-                    className="mt-2 px-3 py-2 bg-slate-800 text-white rounded"
-                  >
-                    {uploading ? 'Subiendo…' : 'Subir'}
-                  </button>
-                  {msgDoc && (
-                    <div className="mt-2 text-sm text-slate-600">{msgDoc}</div>
+                            className="text-sm px-3 py-1 border rounded"
+                          >
+                            Ver
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await api.delete(
+                                  `/diagnostics/documents/${d.id}`
+                                );
+                                // Recargar la página actual
+                                await load(currentPage);
+                              } catch {
+                                // Error al eliminar documento
+                              }
+                            }}
+                            className="text-sm px-3 py-1 border rounded text-rose-600"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-slate-600">Sin documentos</div>
                   )}
                 </div>
-              )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Paginación */}
+      {!loading && !error && pagination.totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={!pagination.hasPreviousPage}
+              className={`relative inline-flex items-center rounded-md px-4 py-2 text-sm font-medium ${
+                pagination.hasPreviousPage
+                  ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+              }`}
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() =>
+                setCurrentPage(prev =>
+                  Math.min(pagination.totalPages, prev + 1)
+                )
+              }
+              disabled={!pagination.hasNextPage}
+              className={`relative ml-3 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium ${
+                pagination.hasNextPage
+                  ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+              }`}
+            >
+              Siguiente
+            </button>
+          </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Mostrando{' '}
+                <span className="font-medium">
+                  {(pagination.page - 1) * pagination.limit + 1}
+                </span>{' '}
+                a{' '}
+                <span className="font-medium">
+                  {Math.min(
+                    pagination.page * pagination.limit,
+                    pagination.total
+                  )}
+                </span>{' '}
+                de <span className="font-medium">{pagination.total}</span>{' '}
+                registros
+              </p>
+            </div>
+            <div>
+              <nav
+                className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+                aria-label="Pagination"
+              >
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={!pagination.hasPreviousPage}
+                  className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${
+                    pagination.hasPreviousPage
+                      ? 'hover:bg-gray-50 cursor-pointer'
+                      : 'cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <span className="sr-only">Anterior</span>
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+
+                {Array.from(
+                  { length: pagination.totalPages },
+                  (_, i) => i + 1
+                ).map(pageNum => {
+                  if (
+                    pageNum === 1 ||
+                    pageNum === pagination.totalPages ||
+                    (pageNum >= pagination.page - 1 &&
+                      pageNum <= pagination.page + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                          pageNum === pagination.page
+                            ? 'z-10 bg-blue-600 text-white focus:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  } else if (
+                    pageNum === pagination.page - 2 ||
+                    pageNum === pagination.page + 2
+                  ) {
+                    return (
+                      <span
+                        key={pageNum}
+                        className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300"
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+
+                <button
+                  onClick={() =>
+                    setCurrentPage(prev =>
+                      Math.min(pagination.totalPages, prev + 1)
+                    )
+                  }
+                  disabled={!pagination.hasNextPage}
+                  className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${
+                    pagination.hasNextPage
+                      ? 'hover:bg-gray-50 cursor-pointer'
+                      : 'cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <span className="sr-only">Siguiente</span>
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </nav>
             </div>
           </div>
         </div>
       )}
+
       {/* Modal visor de documentos */}
       {preview && (
         <div
