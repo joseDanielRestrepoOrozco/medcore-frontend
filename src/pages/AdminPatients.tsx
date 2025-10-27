@@ -126,14 +126,22 @@ const AdminPatients = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      className="px-3 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
-                      onClick={() =>
-                        navigate(`/dashboard/medical-history/${p.id}`)
-                      }
-                    >
-                      Ver historial
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        className="px-3 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+                        onClick={() =>
+                          navigate(`/dashboard/medical-history/${p.id}`)
+                        }
+                      >
+                        Ver historial
+                      </button>
+                      <button
+                        className="px-3 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition"
+                        onClick={() => navigate(`/admin/usuarios/${p.id}/edit`)}
+                      >
+                        Editar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import type { Diagnostic } from '../types/Diagnostic';
+import { useAuth } from '../context/AuthContext';
 
 const MedicalHistoryEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -24,6 +26,13 @@ const MedicalHistoryEdit = () => {
 
   // Para agregar documentos
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+
+  // Verificar que el usuario no sea administrador
+  useEffect(() => {
+    if (user?.role === 'ADMINISTRADOR') {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const loadDiagnostic = async () => {
     if (!id) return;

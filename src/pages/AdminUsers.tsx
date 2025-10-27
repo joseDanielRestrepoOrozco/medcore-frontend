@@ -83,7 +83,7 @@ const AdminUsers = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Usuarios</h1>
         <a
-          href="/dashboard/users/new"
+          href="/admin/usuarios/new"
           className="px-3 py-2 text-sm bg-slate-800 text-white rounded"
         >
           Nuevo usuario
@@ -194,7 +194,7 @@ const AdminUsers = () => {
                         </button>
                       )}
                       <a
-                        href={`/dashboard/users/${u.id}/edit`}
+                        href={`/admin/usuarios/${u.id}/edit`}
                         className="text-sm px-3 py-1 border rounded inline-block hover:bg-slate-50"
                       >
                         Editar

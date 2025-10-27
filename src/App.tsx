@@ -184,6 +184,22 @@ const App = () => {
                 }
               />
               <Route
+                path="/admin/usuarios/new"
+                element={
+                  <RoleRoute allowed={['ADMINISTRADOR', 'admin']}>
+                    <UserNew />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/admin/usuarios/:id/edit"
+                element={
+                  <RoleRoute allowed={['ADMINISTRADOR', 'admin']}>
+                    <UserEdit />
+                  </RoleRoute>
+                }
+              />
+              <Route
                 path="/admin/pacientes"
                 element={
                   <RoleRoute allowed={['ADMINISTRADOR', 'admin']}>

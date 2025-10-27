@@ -35,7 +35,7 @@ const MedicalHistoryView = () => {
     age?: number;
     state?: string;
   } | null>(null);
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
@@ -154,14 +154,16 @@ const MedicalHistoryView = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Historia Clínica</h1>
         <div className="flex items-center gap-2">
-          <Link
-            to={`/dashboard/medical-history/new${
-              patientId ? `?patientId=${patientId}` : ''
-            }`}
-            className="px-3 py-2 text-sm bg-slate-800 text-white rounded"
-          >
-            Nueva consulta
-          </Link>
+          {user?.role !== 'ADMINISTRADOR' && (
+            <Link
+              to={`/dashboard/medical-history/new${
+                patientId ? `?patientId=${patientId}` : ''
+              }`}
+              className="px-3 py-2 text-sm bg-slate-800 text-white rounded"
+            >
+              Nueva consulta
+            </Link>
+          )}
         </div>
       </div>
 
@@ -233,12 +235,14 @@ const MedicalHistoryView = () => {
                     {e.title || 'Consulta médica'}
                   </div>
                 </div>
-                <Link
-                  to={`/dashboard/medical-history/${e.id}/edit`}
-                  className="text-sm px-3 py-1 border rounded"
-                >
-                  Editar
-                </Link>
+                {user?.role !== 'ADMINISTRADOR' && (
+                  <Link
+                    to={`/dashboard/medical-history/${e.id}/edit`}
+                    className="text-sm px-3 py-1 border rounded"
+                  >
+                    Editar
+                  </Link>
+                )}
               </div>
               {e.description && (
                 <p className="mt-2 text-slate-700">{e.description}</p>

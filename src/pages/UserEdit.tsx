@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
+import type { Specialty, Department } from '../types';
 
 type RoleKey = 'MEDICO' | 'ENFERMERA' | 'PACIENTE' | 'ADMINISTRADOR';
 
@@ -18,9 +19,19 @@ type User = {
   phone?: string;
   role?: string;
   status?: string;
-  specialization?: string;
-  department?: string;
-  license_number?: string;
+  documentNumber?: string;
+  date_of_birth?: string;
+  gender?: string;
+  medico?: {
+    specialtyId?: string;
+    license_number?: string;
+  };
+  enfermera?: {
+    departmentId?: string;
+  };
+  paciente?: {
+    address?: string;
+  };
 };
 
 const UserEdit = () => {
@@ -31,13 +42,72 @@ const UserEdit = () => {
   const [email, setEmail] = useState('');
   const [fullname, setFullname] = useState('');
   const [phone, setPhone] = useState('');
-  const [status, setStatus] = useState<'ACTIVE'|'INACTIVE'|'PENDING'>('ACTIVE');
+  const [documentNumber, setDocumentNumber] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [department, setDepartment] = useState('');
   const [license, setLicense] = useState('');
+  const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados para especialidades y departamentos
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingSpecialties, setLoadingSpecialties] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+
+  // Cargar especialidades cuando el rol es MEDICO
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      if (role !== 'MEDICO') {
+        setSpecialties([]);
+        return;
+      }
+      setLoadingSpecialties(true);
+      try {
+        const response = await api.get<Specialty[]>('/specialties');
+        const specialtiesList = Array.isArray(response.data)
+          ? response.data
+          : [];
+        setSpecialties(specialtiesList);
+      } catch (err) {
+        console.error('Error cargando especialidades:', err);
+        setSpecialties([]);
+      } finally {
+        setLoadingSpecialties(false);
+      }
+    };
+
+    fetchSpecialties();
+  }, [role]);
+
+  // Cargar departamentos cuando el rol es ENFERMERA
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      if (role !== 'ENFERMERA') {
+        setDepartments([]);
+        return;
+      }
+      setLoadingDepartments(true);
+      try {
+        const response = await api.get<Department[]>('/departments');
+        const departmentsList = Array.isArray(response.data)
+          ? response.data
+          : [];
+        setDepartments(departmentsList);
+      } catch (err) {
+        console.error('Error cargando departamentos:', err);
+        setDepartments([]);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+
+    fetchDepartments();
+  }, [role]);
 
   useEffect(() => {
     const load = async () => {
@@ -56,11 +126,25 @@ const UserEdit = () => {
           setEmail(u.email || '');
           setFullname(u.fullname || '');
           setPhone(u.phone || '');
-          const st = ((u.status || 'ACTIVE') as string).toUpperCase();
-          setStatus((st as 'ACTIVE' | 'INACTIVE' | 'PENDING'));
-          setSpecialization(u.specialization || '');
-          setDepartment(u.department || '');
-          setLicense(u.license_number || '');
+          setDocumentNumber(u.documentNumber || '');
+          setGender(u.gender || '');
+
+          // Convertir date_of_birth a formato YYYY-MM-DD para input type="date"
+          if (u.date_of_birth) {
+            const date = new Date(u.date_of_birth);
+            const formattedDate = date.toISOString().split('T')[0];
+            setDateOfBirth(formattedDate);
+          }
+
+          // Cargar datos según el rol
+          if (r === 'MEDICO' && u.medico) {
+            setSpecialization(u.medico.specialtyId || '');
+            setLicense(u.medico.license_number || '');
+          } else if (r === 'ENFERMERA' && u.enfermera) {
+            setDepartment(u.enfermera.departmentId || '');
+          } else if (r === 'PACIENTE' && u.paciente) {
+            setAddress(u.paciente.address || '');
+          }
         }
       } catch {
         setError('No se pudo cargar el usuario');
@@ -77,33 +161,69 @@ const UserEdit = () => {
     setSaving(true);
     setError(null);
     try {
-      if (role === 'MEDICO') {
-        await api.put(`/users/doctors/${id}`, {
-          email,
-          fullname,
-          phone,
-          specialization,
-          department,
-          license_number: license,
-        });
-      } else if (role === 'ENFERMERA') {
-        await api.put(`/users/nurses/${id}`, {
-          email,
-          fullname,
-          phone,
-          department,
-        });
-      } else {
-        await api.put(`/users/${id}`, {
-          email,
-          fullname,
-          phone,
-          status,
-        });
+      // Construir payload solo con campos que tienen valor
+      const payload: Record<string, unknown> = {};
+
+      // Campos básicos (solo si tienen valor)
+      if (email && email !== user?.email) payload.email = email;
+      if (fullname && fullname !== user?.fullname) payload.fullname = fullname;
+      if (phone && phone !== user?.phone) payload.phone = phone;
+      if (documentNumber && documentNumber !== user?.documentNumber)
+        payload.documentNumber = documentNumber;
+      if (gender && gender !== user?.gender) payload.gender = gender;
+      if (dateOfBirth && dateOfBirth !== user?.date_of_birth) {
+        // Convertir la fecha a formato ISO DateTime
+        payload.date_of_birth = new Date(dateOfBirth).toISOString();
       }
+
+      if (role === 'MEDICO') {
+        // Solo agregar objeto medico si hay cambios con valores válidos
+        const medicoData: Record<string, string> = {};
+
+        if (specialization && specialization.trim()) {
+          medicoData.specialtyId = specialization.trim();
+        }
+        if (license && license.trim()) {
+          medicoData.license_number = license.trim();
+        }
+
+        // Solo agregar medico si tiene al menos un campo
+        if (Object.keys(medicoData).length > 0) {
+          payload.medico = medicoData;
+        }
+
+        await api.put(`/users/doctors/${id}`, payload);
+      } else if (role === 'ENFERMERA') {
+        // Solo agregar enfermera si hay departamento válido
+        if (department && department.trim()) {
+          payload.enfermera = {
+            departmentId: department.trim(),
+          };
+        }
+
+        await api.put(`/users/nurses/${id}`, payload);
+      } else if (role === 'PACIENTE') {
+        // Para pacientes, agregar dirección si existe
+        if (address && address.trim()) {
+          payload.paciente = {
+            address: address.trim(),
+          };
+        }
+        await api.put(`/users/patients/${id}`, payload);
+      } else {
+        // Para administradores
+        await api.put(`/users/${id}`, payload);
+      }
+
       navigate('/admin/usuarios');
-    } catch {
-      setError('No se pudo actualizar el usuario');
+    } catch (err) {
+      const errorMsg =
+        (err as { response?: { data?: { error?: string; message?: string } } })
+          ?.response?.data?.error ||
+        (err as { response?: { data?: { error?: string; message?: string } } })
+          ?.response?.data?.message ||
+        'No se pudo actualizar el usuario';
+      setError(errorMsg);
     } finally {
       setSaving(false);
     }
@@ -119,59 +239,158 @@ const UserEdit = () => {
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
             <label className="block text-sm font-medium">Nombre completo</label>
-            <input value={fullname} onChange={(e) => setFullname(e.target.value)} className="w-full border rounded px-3 py-2" />
+            <input
+              value={fullname}
+              onChange={e => setFullname(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium">Correo</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border rounded px-3 py-2" />
+            <input
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium">Teléfono</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full border rounded px-3 py-2" />
+            <input
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">
+              Número de documento
+            </label>
+            <input
+              value={documentNumber}
+              onChange={e => setDocumentNumber(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              placeholder="Número de identificación"
+            />
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium">
+                Fecha de nacimiento
+              </label>
+              <input
+                type="date"
+                value={dateOfBirth}
+                onChange={e => setDateOfBirth(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Género</label>
+              <select
+                value={gender}
+                onChange={e => setGender(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              >
+                <option value="">Seleccionar...</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium">Rol</label>
-            <select value={role} onChange={(e) => setRole(e.target.value as RoleKey)} className="w-full border rounded px-3 py-2">
-              {(Object.keys(roleLabels) as RoleKey[]).map((k) => (
-                <option key={k} value={k}>{roleLabels[k]}</option>
+            <select
+              value={role}
+              onChange={e => setRole(e.target.value as RoleKey)}
+              className="w-full border rounded px-3 py-2 bg-gray-100 cursor-not-allowed"
+              disabled
+            >
+              {(Object.keys(roleLabels) as RoleKey[]).map(k => (
+                <option key={k} value={k}>
+                  {roleLabels[k]}
+                </option>
               ))}
             </select>
+            <p className="text-xs text-gray-500 mt-1">
+              El rol no se puede modificar una vez creado el usuario
+            </p>
           </div>
           {role === 'MEDICO' && (
             <>
               <div>
-                <label className="block text-sm font-medium">Especialización</label>
-                <input value={specialization} onChange={(e) => setSpecialization(e.target.value)} className="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Departamento</label>
-                <input value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full border rounded px-3 py-2" />
+                <label className="block text-sm font-medium">
+                  Especialización
+                </label>
+                {loadingSpecialties ? (
+                  <div className="text-sm text-gray-500 py-2">
+                    Cargando especialidades...
+                  </div>
+                ) : (
+                  <select
+                    value={specialization}
+                    onChange={e => setSpecialization(e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="">Seleccione una especialidad...</option>
+                    {specialties.map(spec => (
+                      <option key={spec.id} value={spec.id}>
+                        {spec.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium">Licencia</label>
-                <input value={license} onChange={(e) => setLicense(e.target.value)} className="w-full border rounded px-3 py-2" />
+                <input
+                  value={license}
+                  onChange={e => setLicense(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                  placeholder="Número de licencia médica"
+                />
               </div>
             </>
           )}
           {role === 'ENFERMERA' && (
             <div>
               <label className="block text-sm font-medium">Departamento</label>
-              <input value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full border rounded px-3 py-2" />
+              {loadingDepartments ? (
+                <div className="text-sm text-gray-500 py-2">
+                  Cargando departamentos...
+                </div>
+              ) : (
+                <select
+                  value={department}
+                  onChange={e => setDepartment(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">Seleccione un departamento...</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
-          <div>
-            <label className="block text-sm font-medium">Estado</label>
-            <select
-              value={status}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as 'ACTIVE' | 'INACTIVE' | 'PENDING')}
-              className="w-full border rounded px-3 py-2"
-            >
-              <option value="ACTIVE">ACTIVO</option>
-              <option value="INACTIVE">INACTIVO</option>
-              <option value="PENDING">PENDIENTE</option>
-            </select>
-          </div>
-          <button type="submit" disabled={saving} className="px-4 py-2 bg-slate-800 text-white rounded">
+          {role === 'PACIENTE' && (
+            <div>
+              <label className="block text-sm font-medium">Dirección</label>
+              <textarea
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                className="w-full border rounded px-3 py-2 h-20"
+                placeholder="Dirección del paciente"
+              />
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-4 py-2 bg-slate-800 text-white rounded"
+          >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </form>

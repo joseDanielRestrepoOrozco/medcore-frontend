@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import type { Specialty, Department } from '../types';
 
 type RoleKey = 'MEDICO' | 'ENFERMERA' | 'PACIENTE';
 
@@ -28,6 +29,64 @@ const UserNew = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Estados para especialidades y departamentos
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingSpecialties, setLoadingSpecialties] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+
+  // Cargar especialidades cuando el rol es MEDICO
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      if (role !== 'MEDICO') {
+        setSpecialties([]);
+        return;
+      }
+      setLoadingSpecialties(true);
+      try {
+        const response = await api.get<Specialty[]>('/specialties');
+
+        const specialtiesList = Array.isArray(response.data)
+          ? response.data
+          : [];
+
+        setSpecialties(specialtiesList);
+      } catch (err) {
+        console.error('Error cargando especialidades:', err);
+        setSpecialties([]);
+      } finally {
+        setLoadingSpecialties(false);
+      }
+    };
+
+    fetchSpecialties();
+  }, [role]);
+
+  // Cargar departamentos cuando el rol es ENFERMERA
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      if (role !== 'ENFERMERA') {
+        setDepartments([]);
+        return;
+      }
+      setLoadingDepartments(true);
+      try {
+        const response = await api.get<Department[]>('/departments');
+        const departmentsList = Array.isArray(response.data)
+          ? response.data
+          : [];
+        setDepartments(departmentsList);
+      } catch (err) {
+        console.error('Error cargando departamentos:', err);
+        setDepartments([]);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+
+    fetchDepartments();
+  }, [role]);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -41,6 +100,7 @@ const UserNew = () => {
         documentNumber,
         current_password: currentPassword,
         date_of_birth: dateOfBirth,
+        role: role, // Agregar el rol al payload
       };
 
       // Agregar campos opcionales si tienen valor
@@ -52,24 +112,32 @@ const UserNew = () => {
 
       if (role === 'MEDICO') {
         endpoint = '/users/doctors';
-        payload.medico = {
-          specialty: specialty,
-          license_number: licenseNumber || '',
-        };
+        // Solo agregar medico si hay valores válidos
+        const medicoData: Record<string, string> = {};
+        if (specialty) medicoData.specialty = specialty;
+        if (licenseNumber) medicoData.license_number = licenseNumber;
+
+        // Solo agregar el objeto medico si tiene al menos un campo
+        if (Object.keys(medicoData).length > 0) {
+          payload.medico = medicoData;
+        }
       } else if (role === 'ENFERMERA') {
         endpoint = '/users/nurses';
-        payload.enfermera = {
-          department: department || 'General',
-        };
-      } else if (role === 'PACIENTE') {
-        endpoint = '/users';
-        // gender ya está en el payload base
-        // Agregar datos opcionales de paciente
-        if (address) {
-          payload.paciente = {
-            gender: gender,
-            address: address,
+        // Solo agregar enfermera si hay departamento válido
+        if (department) {
+          payload.enfermera = {
+            department: department,
           };
+        }
+      } else if (role === 'PACIENTE') {
+        endpoint = '/users/patients';
+        // Agregar datos opcionales de paciente
+        const pacienteData: Record<string, string> = {};
+        if (address) pacienteData.address = address;
+
+        // Solo agregar el objeto paciente si tiene campos
+        if (Object.keys(pacienteData).length > 0) {
+          payload.paciente = pacienteData;
         }
       }
 
@@ -209,13 +277,29 @@ const UserNew = () => {
               <label className="block text-sm font-medium">
                 Especialidad *
               </label>
-              <input
-                value={specialty}
-                onChange={e => setSpecialty(e.target.value)}
-                className="w-full border rounded px-3 py-2"
-                placeholder="Ej: Cardiología"
-                required
-              />
+              {loadingSpecialties ? (
+                <div className="text-sm text-gray-500 py-2">
+                  Cargando especialidades...
+                </div>
+              ) : (
+                <>
+                  <select
+                    value={specialty}
+                    onChange={e => setSpecialty(e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                    required
+                  >
+                    <option value="">Seleccione una especialidad...</option>
+                    {specialties.map(spec => {
+                      return (
+                        <option key={spec.id} value={spec.name}>
+                          {spec.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium">
@@ -235,13 +319,29 @@ const UserNew = () => {
         {role === 'ENFERMERA' && (
           <div>
             <label className="block text-sm font-medium">Departamento *</label>
-            <input
-              value={department}
-              onChange={e => setDepartment(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-              placeholder="Ej: Emergencias, UCI, Pediatría"
-              required
-            />
+            {loadingDepartments ? (
+              <div className="text-sm text-gray-500 py-2">
+                Cargando departamentos...
+              </div>
+            ) : (
+              <>
+                <select
+                  value={department}
+                  onChange={e => setDepartment(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                >
+                  <option value="">Seleccione un departamento...</option>
+                  {departments.map(dept => {
+                    return (
+                      <option key={dept.id} value={dept.name}>
+                        {dept.name}
+                      </option>
+                    );
+                  })}
+                </select>
+              </>
+            )}
           </div>
         )}
 
