@@ -89,7 +89,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex">
-      <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
+      <div className="flex-1 p-4 md:p-6 bg-background min-h-screen">
         {/* El Sidebar se renderiza globalmente en App.tsx; aquí solo el contenido del dashboard */}
         {/* Tarjeta de Perfil */}
         <section className="bg-slate-800 text-white rounded-2xl p-6 flex items-start justify-between">
@@ -139,7 +139,7 @@ const AdminDashboard = () => {
           </div>
         </section>
 
-        <section className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border p-4">
             <div className="text-sm text-slate-500">Usuarios Activos</div>
             <div className="mt-2 text-3xl font-bold">{usersActive}</div>

@@ -34,14 +34,24 @@ const AdminPatients = () => {
           page: currentPage,
         };
         if (searchQuery.trim()) params.q = searchQuery.trim();
-        const res = await api.get('/users/patients', { params });
-        const list = (res.data.patients || []) as Patient[];
+        const res = await api.get('/users/patients', { params }).catch(async () => {
+          const fallbackParams: Record<string, unknown> = { role: 'PACIENTE', limit: 10, page: currentPage };
+          if (searchQuery.trim()) fallbackParams.q = searchQuery.trim();
+          return api.get('/users/by-role', { params: fallbackParams });
+        });
+
+        const data = res.data as {
+          patients?: Patient[];
+          users?: Patient[];
+          pagination?: { total?: number; totalPages?: number };
+        };
+        const list = (data.patients ?? data.users ?? []) as Patient[];
         const uniq: Record<string, Patient> = {};
         for (const p of list) uniq[p.id] = p;
         setPatients(Object.values(uniq));
-        if (res.data.totalPages) setTotalPages(res.data.totalPages);
-        else if (res.data.totalCount)
-          setTotalPages(Math.ceil(res.data.totalCount / 10));
+        const pag = data.pagination;
+        if (pag?.totalPages) setTotalPages(pag.totalPages);
+        else if (pag?.total) setTotalPages(Math.ceil(pag.total / 10));
         else setTotalPages(1);
       } catch {
         setError('No se pudieron cargar los pacientes');
@@ -63,7 +73,7 @@ const AdminPatients = () => {
   };
 
   return (
-    <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
+    <div className="flex-1 p-4 md:p-6 bg-background min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Pacientes</h1>
       <div className="mb-4 flex items-center gap-2">
         <input

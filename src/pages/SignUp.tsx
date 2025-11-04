@@ -7,18 +7,14 @@ import { useForm } from 'react-hook-form';
 import InputField from '../components/InputField';
 import { z } from 'zod';
 
-// Validaciones alineadas con el backend (zod en backend limita a max 6 y requiere un número)
+// Validaciones mínimas en el frontend (solo requeridos). Las reglas
+// de complejidad/edad las aplica el backend y se mostrarán como errores de campo.
 const signUpSchema = z.object({
   fullname: z.string().min(1, { message: 'El nombre es obligatorio' }),
   email: z.string().email({ message: 'Correo inválido' }),
-  currentPassword: z
-    .string()
-    .min(1, { message: 'La contraseña es obligatoria' })
-    .max(15, { message: 'Máximo 15 caracteres' })
-    .refine((val) => /\d/.test(val), {
-      message: 'Debe contener al menos un número',
-    }),
+  currentPassword: z.string().min(1, { message: 'La contraseña es obligatoria' }).max(100, { message: 'Máximo 100 caracteres' }),
   dateOfBirth: z.string().min(1, { message: 'La fecha es obligatoria' }),
+  documentNumber: z.string().min(1, { message: 'El documento es obligatorio' }),
 });
 
 const SignUp = () => {
@@ -39,6 +35,7 @@ const SignUp = () => {
       currentPassword: '',
       fullname: '',
       dateOfBirth: '',
+      documentNumber: '',
     },
     mode: 'onChange',
   });
@@ -48,42 +45,81 @@ const SignUp = () => {
     email?: { message?: string };
     currentPassword?: { message?: string };
     dateOfBirth?: { message?: string };
+    documentNumber?: { message?: string };
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
     setLoading(true);
     setError(null);
     try {
-      // La creación de cuenta es para Administradores. El backend asigna rol por defecto
-      // o puede aceptarlo en el payload si está soportado.
+      // Normaliza fecha a YYYY-MM-DD si viene como DD/MM/YYYY (por localización visual)
+      const dob = (() => {
+        const v = String(data.dateOfBirth || '').trim();
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+          const [dd, mm, yyyy] = v.split('/');
+          return `${yyyy}-${mm}-${dd}`;
+        }
+        return v;
+      })();
+
+      // Creación de cuenta solo para ADMINISTRADOR
       await signUp({
         fullname: data.fullname,
         email: data.email,
         current_password: data.currentPassword,
-        date_of_birth: data.dateOfBirth,
+        date_of_birth: dob,
         role: 'ADMINISTRADOR',
+        documentNumber: data.documentNumber,
       });
       navigate('/verify', { state: { email: data.email } });
       form.reset();
       sessionStorage.removeItem('signup_access');
     } catch (err: unknown) {
-      // Si el backend devolvió detalles de validación por campo, pintarlos abajo de cada input
+      // Si el backend devolvió detalles de validación por campo (Zod), pintarlos en cada input
       const ax = err as {
         response?: { status?: number; data?: { error?: unknown; details?: Record<string, string[]> } };
       };
       const status = ax?.response?.status;
       const details = ax?.response?.data?.details;
+      // const serverMsg = ax?.response?.data?.error as string | undefined;
       if (status === 400 && details && typeof details === 'object') {
+        const prettify = (field: string, raw: string): string => {
+          const m = String(raw || '').toLowerCase();
+          // Mensajes específicos por campo (más claros para usuario)
+          const required = (f: string) =>
+            f === 'fullname' ? 'El nombre es obligatorio'
+            : f === 'email' ? 'El correo es obligatorio'
+            : f === 'current_password' ? 'La contraseña es obligatoria'
+            : f === 'date_of_birth' ? 'La fecha es obligatoria'
+            : 'Campo obligatorio';
+          if (m.includes('expected string') || m.includes('received undefined') || m.includes('required')) {
+            return required(field);
+          }
+          if (m.includes('invalid email')) return 'Correo inválido';
+          if (m.includes('invalid date')) return 'Fecha inválida';
+          if (m.includes('at least 6') || m.includes('al menos 6')) return 'La contraseña debe tener al menos 6 caracteres';
+          // Si ya viene en español y entendible, úsalo
+          return raw;
+        };
+
         Object.entries(details).forEach(([field, messages]) => {
-          const msg = Array.isArray(messages) ? messages[0] : String(messages);
-          if (['fullname', 'email', 'currentPassword'].includes(field)) {
-            form.setError(field as 'fullname' | 'email' | 'currentPassword', {
-              type: 'server',
-              message: msg,
-            });
+          const original = Array.isArray(messages) ? messages[0] : String(messages);
+          const friendly = prettify(field, original);
+          // Mapea nombres del backend -> nombres del formulario
+          const map: Record<string, 'fullname' | 'email' | 'currentPassword' | 'dateOfBirth' | 'documentNumber'> = {
+            fullname: 'fullname',
+            email: 'email',
+            current_password: 'currentPassword',
+            date_of_birth: 'dateOfBirth',
+            documentNumber: 'documentNumber',
+          };
+          const key = map[field];
+          if (key) {
+            form.setError(key, { type: 'server', message: friendly });
           }
         });
-        setError('Revisa los campos marcados.');
+        // No mostrar mensaje superior técnico; dejamos solo mensajes por campo
+        setError(null);
       } else {
         setError(getErrorMessage(err));
       }
@@ -114,6 +150,13 @@ const SignUp = () => {
             placeholder="Nombre completo"
             register={form.register}
             error={errors.fullname?.message}
+          />
+          <InputField
+            label="Número de documento"
+            name="documentNumber"
+            placeholder="Documento"
+            register={form.register}
+            error={errors.documentNumber?.message}
           />
           <InputField
             label="Correo electrónico"

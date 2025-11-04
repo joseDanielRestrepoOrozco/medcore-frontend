@@ -7,6 +7,7 @@ export type SignUpPayload = {
   current_password?: string;
   date_of_birth?: string; // YYYY-MM-DD
   role?: string;
+  documentNumber?: string;
 };
 export type LoginPayload = { email: string; current_password: string };
 export type VerifyEmailPayload = { email: string; verificationCode: string };

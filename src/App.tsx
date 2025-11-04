@@ -19,7 +19,9 @@ import GuestRoute from './components/GuestRoute';
 import RoleRoute from './components/RoleRoute';
 import RoleRedirect from './components/RoleRedirect';
 import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
+import AppSidebar from './components/AppSidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import AppContent from '@/components/AppContent';
 import { useState } from 'react';
 import { useAuth } from './context/AuthContext';
 import MedicalHistoryView from './pages/MedicalHistoryView';
@@ -35,56 +37,48 @@ import Agenda from './pages/Agenda';
 import DoctorPatients from './pages/DoctorPatients';
 import PatientHistory from './pages/PatientHistory';
 import NurseDashboard from './pages/NurseDashboard';
+import DoctorAvailability from './pages/DoctorAvailability';
+import DoctorAppointments from './pages/DoctorAppointments';
 
 const App = () => {
   const MainLayout: React.FC = () => {
     const { token } = useAuth();
     const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
       try {
-        return localStorage.getItem('sidebarCollapsed') === 'true';
+        const raw = localStorage.getItem('sidebarCollapsed');
+        // Por defecto colapsado (true) para maximizar el espacio de contenido
+        return raw === null ? true : raw === 'true';
       } catch {
-        return false;
+        return true;
       }
     });
-    // Control global para el overlay en móvil
+    // Control global para el overlay en móvil (abre/cierra)
     const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
+    const styleVars: Record<string, string> = {
+      '--sidebar-width': '18rem',
+      '--sidebar-width-icon': '3.5rem',
+    };
+
     return (
-      <div className="min-h-screen flex flex-col">
+      <SidebarProvider
+        open={!sidebarCollapsed || sidebarOpen}
+        onOpenChange={(open) => {
+          // En desktop, persistimos colapsado; en móvil, controlamos overlay
+          if (window.innerWidth >= 768) {
+            try { localStorage.setItem('sidebarCollapsed', String(!open)); } catch { void 0; }
+            setSidebarCollapsed(!open);
+          } else {
+            setSidebarOpen(open);
+          }
+        }}
+        className="min-h-screen flex flex-col"
+        style={styleVars as React.CSSProperties}
+      >
         <Navbar />
         <div className="flex-1 flex">
-          {token && (
-            <Sidebar
-              collapsed={sidebarCollapsed}
-              onToggle={() => {
-                setSidebarCollapsed(prev => {
-                  const next = !prev;
-                  try {
-                    localStorage.setItem('sidebarCollapsed', String(next));
-                  } catch {
-                    // ignore storage errors
-                  }
-                  return next;
-                });
-              }}
-              open={sidebarOpen}
-              onClose={() => setSidebarOpen(false)}
-            />
-          )}
-          <main className="flex-1 pt-0 pb-8">
-            {/* Botón global móvil para abrir el sidebar cuando existe token */}
-            {token && (
-              <div className="md:hidden px-4 py-3">
-                <button
-                  type="button"
-                  onClick={() => setSidebarOpen(true)}
-                  className="mb-4 px-3 py-2 rounded border bg-white"
-                  aria-label="Abrir menú"
-                >
-                  Menú
-                </button>
-              </div>
-            )}
+          {token && <AppSidebar />}
+          <AppContent>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route
@@ -223,6 +217,22 @@ const App = () => {
                   </RoleRoute>
                 }
               />
+              <Route
+                path="/medico/citas"
+                element={
+                  <RoleRoute allowed={['MEDICO', 'medico']}>
+                    <DoctorAppointments />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/medico/disponibilidad"
+                element={
+                  <RoleRoute allowed={['MEDICO', 'medico']}>
+                    <DoctorAvailability />
+                  </RoleRoute>
+                }
+              />
               {/* Vistas de Historia Clínica */}
               <Route
                 path="/dashboard/medical-history/:patientId"
@@ -314,9 +324,9 @@ const App = () => {
                 }
               />
             </Routes>
-          </main>
+          </AppContent>
         </div>
-      </div>
+      </SidebarProvider>
     );
   };
 

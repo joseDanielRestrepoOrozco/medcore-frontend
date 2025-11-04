@@ -9,6 +9,7 @@ type User = {
   role: string;
   status: string;
   createdAt?: string;
+  documentNumber?: string;
 };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -24,7 +25,7 @@ const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  type Filter = 'TODOS' | 'ADMINISTRADOR' | 'MEDICO' | 'ENFERMERA';
+  type Filter = 'TODOS' | 'ADMINISTRADOR' | 'MEDICO' | 'ENFERMERA' | 'PACIENTE';
   const [filter, setFilter] = useState<Filter>('TODOS');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -34,23 +35,39 @@ const AdminUsers = () => {
     setError(null);
     try {
       let list: User[] = [];
+      const q = query.trim().toLowerCase();
+      const matches = (u: User) => {
+        if (!q) return true;
+        const name = String(u.fullname || '').toLowerCase();
+        const doc = String(u.documentNumber || '').toLowerCase();
+        const email = String(u.email || '').toLowerCase();
+        return (
+          name.includes(q) || doc.includes(q) || email.includes(q)
+        );
+      };
+
       if (filter === 'TODOS') {
-        const params: Record<string, unknown> = {};
-        if (query.trim()) params.q = query.trim();
-        const res = await api.get('/users', { params });
-        list = (res.data?.users || []) as User[];
+        // Evitar /users (está fallando con 500). Unir por rol y filtrar en cliente.
+        const roles: Filter[] = ['ADMINISTRADOR', 'MEDICO', 'ENFERMERA', 'PACIENTE'];
+        const results = await Promise.all(
+          roles.map(async (r) => {
+            const rp: Record<string, unknown> = { role: r, page: 1, limit: 100 };
+            try {
+              const rr = await api.get('/users/by-role', { params: rp });
+              return (rr.data?.users || []) as User[];
+            } catch {
+              return [] as User[];
+            }
+          })
+        );
+        list = results.flat().filter(matches);
       } else {
-        const params: Record<string, unknown> = { role: filter };
-        if (query.trim()) params.q = query.trim();
+        const params: Record<string, unknown> = { role: filter, page: 1, limit: 100 };
         const res = await api.get('/users/by-role', { params });
-        list = (res.data?.users || []) as User[];
+        const remote = (res.data?.users || []) as User[];
+        list = remote.filter(matches);
       }
-      // Filtra fuera pacientes por seguridad cuando es "TODOS"
-      const sanitized =
-        filter === 'TODOS'
-          ? list.filter(u => (u.role || '').toUpperCase() !== 'PACIENTE')
-          : list;
-      setUsers(sanitized);
+      setUsers(list);
     } catch {
       setError('No se pudieron cargar los usuarios');
     } finally {
@@ -74,12 +91,13 @@ const AdminUsers = () => {
       { key: 'ADMINISTRADOR' as Filter, label: 'Administradores' },
       { key: 'MEDICO' as Filter, label: 'Médicos' },
       { key: 'ENFERMERA' as Filter, label: 'Enfermeras' },
+      { key: 'PACIENTE' as Filter, label: 'Pacientes' },
     ],
     []
   );
 
   return (
-    <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
+    <div className="flex-1 p-4 md:p-6 bg-background min-h-screen">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Usuarios</h1>
         <a
@@ -123,12 +141,13 @@ const AdminUsers = () => {
       {error && <div className="mt-6 text-red-600">{error}</div>}
 
       {!loading && !error && (
-        <div className="mt-6 bg-white border rounded-xl overflow-hidden">
+        <div className="mt-6 overflow-x-auto bg-white border rounded-xl">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50 text-slate-700">
               <tr>
                 <th className="text-left px-4 py-3">Nombre</th>
                 <th className="text-left px-4 py-3">Correo</th>
+                <th className="text-left px-4 py-3">Documento</th>
                 <th className="text-left px-4 py-3">Rol</th>
                 <th className="text-left px-4 py-3">Estado</th>
                 <th className="text-left px-4 py-3">Acciones</th>
@@ -141,6 +160,7 @@ const AdminUsers = () => {
                   <tr key={u.id} className="border-t">
                     <td className="px-4 py-3">{u.fullname || '-'}</td>
                     <td className="px-4 py-3">{u.email}</td>
+                    <td className="px-4 py-3">{u.documentNumber || '-'}</td>
                     <td className="px-4 py-3">{ROLE_LABEL[role] || role}</td>
                     <td className="px-4 py-3">
                       <span

@@ -8,7 +8,7 @@ const Dashboard = () => {
   const { user } = useAuth();
 
   return (
-    <div className="flex-1 p-4 md:p-6 bg-slate-100 min-h-screen">
+    <div className="flex-1 p-4 md:p-6 bg-background min-h-screen">
       {/* El botón móvil global está en MainLayout; no renderizamos Sidebar localmente */}
         <ProfileHeader name={user?.fullname || user?.email || 'Juan Pérez'} />
 

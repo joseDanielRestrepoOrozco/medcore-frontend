@@ -1,6 +1,16 @@
 import axios from 'axios';
 
-const API_BASE = `${import.meta.env.VITE_API_BASE}` as const;
+// Base URL de la API. Preferimos VITE_API_BASE; si no existe, caemos a "/api/v1"
+// que está proxied a http://localhost:3000 en vite.config.ts (dev) y funciona como
+// path relativo en producción detrás del mismo dominio.
+const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+const fromEnv = env?.VITE_API_BASE;
+const API_BASE = fromEnv && fromEnv !== 'undefined' ? fromEnv : '/api/v1';
+
+if (!fromEnv || fromEnv === 'undefined') {
+  // Ayuda en dev para detectar configuración faltante
+  console.warn('[medcore] VITE_API_BASE no está definido. Usando fallback "/api/v1".');
+}
 
 const api = axios.create({ baseURL: API_BASE });
 
