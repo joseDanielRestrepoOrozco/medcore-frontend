@@ -39,6 +39,7 @@ import PatientHistory from './pages/PatientHistory';
 import NurseDashboard from './pages/NurseDashboard';
 import DoctorAvailability from './pages/DoctorAvailability';
 import DoctorAppointments from './pages/DoctorAppointments';
+import PatientAppointments from './pages/PatientAppointments';
 
 const App = () => {
   const MainLayout: React.FC = () => {
@@ -55,25 +56,23 @@ const App = () => {
     // Control global para el overlay en móvil (abre/cierra)
     const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
-    const styleVars: Record<string, string> = {
-      '--sidebar-width': '18rem',
-      '--sidebar-width-icon': '3.5rem',
-    };
-
     return (
       <SidebarProvider
         open={!sidebarCollapsed || sidebarOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           // En desktop, persistimos colapsado; en móvil, controlamos overlay
           if (window.innerWidth >= 768) {
-            try { localStorage.setItem('sidebarCollapsed', String(!open)); } catch { void 0; }
+            try {
+              localStorage.setItem('sidebarCollapsed', String(!open));
+            } catch {
+              void 0;
+            }
             setSidebarCollapsed(!open);
           } else {
             setSidebarOpen(open);
           }
         }}
         className="min-h-screen flex flex-col"
-        style={styleVars as React.CSSProperties}
       >
         <Navbar />
         <div className="flex-1 flex">
@@ -320,6 +319,14 @@ const App = () => {
                 element={
                   <RoleRoute allowed={['PACIENTE', 'patient']}>
                     <PatientHistory />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/patient/appointments"
+                element={
+                  <RoleRoute allowed={['PACIENTE', 'patient']}>
+                    <PatientAppointments />
                   </RoleRoute>
                 }
               />
