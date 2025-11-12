@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import axios from 'axios';
 
 // Garantizar que el frontend SIEMPRE apunte al API Gateway en :3000
@@ -5,6 +6,10 @@ import axios from 'axios';
 const API_BASE = 'http://localhost:3000/api/v1' as const;
 
 const api = axios.create({ baseURL: API_BASE });
+=======
+import { http } from '@/lib/http';
+const api = http;
+>>>>>>> Stashed changes
 
 // Adjunta el token si existe y ajusta Content-Type para FormData
 api.interceptors.request.use((config) => {

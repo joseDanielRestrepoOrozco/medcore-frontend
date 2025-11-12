@@ -28,7 +28,7 @@ const AuthStatus = () => {
   //   role === 'ADMINISTRADOR' ? '/admin' : role === 'PACIENTE' ? '/patient' : role === 'MEDICO' ? '/medico' : '/dashboard';
 
   return (
-    <div className="flex items-center space-x-3">
+    <div className="flex items-center gap-x-2 md:gap-x-3">
       <span className="text-sm text-slate-900 hidden sm:inline">{displayName}</span>
 
       {/* Icono de perfil removido (ya accesible desde el panel) */}

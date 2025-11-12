@@ -1,9 +1,17 @@
+<<<<<<< Updated upstream:src/pages/PatientDashboard.tsx
 import Sidebar from '../components/Sidebar';
 import ProfileHeader from '../components/ProfileHeader';
 import MiniCalendar from '../components/MiniCalendar';
 import { StatCard } from '../components/DashboardCards';
 import PatientSummaryCards from '../components/PatientSummaryCards';
 import { useState } from 'react';
+=======
+import ProfileHeader from '@/components/ProfileHeader';
+import MiniCalendar from '@/components/MiniCalendar';
+import { StatCard } from '@/components/DashboardCards';
+import PatientSummaryCards from '@/components/PatientSummaryCards';
+
+>>>>>>> Stashed changes:src/pages/patient/PatientDashboard.tsx
 
 const PatientDashboard = () => {
   // mock data for now

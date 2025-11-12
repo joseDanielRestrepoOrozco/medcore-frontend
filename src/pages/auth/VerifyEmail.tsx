@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { verifyEmail, resendVerificationCode } from '../services/auth';
+import { verifyEmail, resendVerificationCode } from '@/services/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getErrorMessage } from '../utils/error';
+import { getErrorMessage } from '@/utils/error';
 
 const VerifyEmail = () => {
   const loc = useLocation() as unknown as { state?: { email?: string } };
