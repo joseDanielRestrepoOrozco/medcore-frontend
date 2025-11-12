@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Select, SelectItem } from '@/components/ui/select';
-import DateTimePicker from '@/components/DateTimePicker';
+import { Calendar } from '@/components/ui/calendar';
 import FormSelectField from '@/components/FormSelectField';
 import { Input } from '@/components/ui/input';
 import useNewAppointment from '@/hooks/useNewAppointment';
@@ -24,7 +24,25 @@ import { useNavigate } from 'react-router-dom';
 
 const PatientNewAppointment = () => {
   const navigate = useNavigate();
-  const { form, onSubmit, doctors, specialties } = useNewAppointment();
+  const {
+    form,
+    onSubmit,
+    doctors,
+    specialties,
+    availableSlots,
+    selectedDate,
+    setSelectedDate,
+    loadingSlots,
+    isSubmitting,
+  } = useNewAppointment();
+
+  const formatTime = (dateTimeString: string) => {
+    const date = new Date(dateTimeString);
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
     <Card className="m-5 md:mx-auto max-w-lg overflow-x-auto">
@@ -86,7 +104,7 @@ const PatientNewAppointment = () => {
                       </Select>
                     </FormControl>
                     <FormDescription>
-                      Elige la especialidad de la cual deseas agendar una cita
+                      Elige el doctor de tu preferencia
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -95,42 +113,88 @@ const PatientNewAppointment = () => {
             )}
             {form.getValues('doctorId') && (
               <>
-                <FormField
-                  control={form.control}
-                  name="startAt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fecha y hora para la cita</FormLabel>
-                      <FormControl>
-                        <DateTimePicker
-                          value={field.value}
-                          onChange={field.onChange}
-                          defaultTime="08:30:00"
-                          offset="-05:00"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Selecciona la fecha y hora para tu cita médica
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="reason"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Razón de la cita medica</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="dolor estomacal, fuerte dolor en el pecho,..."
-                          {...field}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Selecciona la fecha
+                  </label>
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={date =>
+                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                    }
+                    className="rounded-md border"
+                  />
+                  <p className="text-[0.8rem] text-muted-foreground">
+                    Selecciona la fecha para ver horarios disponibles
+                  </p>
+                </div>
+
+                {selectedDate && (
+                  <FormField
+                    control={form.control}
+                    name="startAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Horarios disponibles</FormLabel>
+                        <FormControl>
+                          <div className="border rounded-md">
+                            {loadingSlots ? (
+                              <p className="p-4 text-center text-muted-foreground">
+                                Cargando horarios...
+                              </p>
+                            ) : availableSlots.length === 0 ? (
+                              <p className="p-4 text-center text-muted-foreground">
+                                No hay horarios disponibles para esta fecha
+                              </p>
+                            ) : (
+                              <div className="grid grid-cols-3 gap-2 p-4">
+                                {availableSlots.map(slot => (
+                                  <Button
+                                    key={slot}
+                                    type="button"
+                                    variant={
+                                      field.value === slot
+                                        ? 'default'
+                                        : 'outline'
+                                    }
+                                    className="cursor-pointer"
+                                    onClick={() => field.onChange(slot)}
+                                  >
+                                    {formatTime(slot)}
+                                  </Button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Selecciona un horario disponible
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {form.getValues('startAt') && (
+                  <FormField
+                    control={form.control}
+                    name="reason"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Razón de la cita medica</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="dolor estomacal, fuerte dolor en el pecho,..."
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                )}
               </>
             )}
             <div className="flex justify-end gap-4">
@@ -141,11 +205,16 @@ const PatientNewAppointment = () => {
                 onClick={() => {
                   navigate('/patient/appointments');
                 }}
+                disabled={isSubmitting}
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="cursor-pointer">
-                Agendar
+              <Button
+                type="submit"
+                className="cursor-pointer"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Agendando...' : 'Agendar'}
               </Button>
             </div>
           </form>
