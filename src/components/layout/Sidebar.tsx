@@ -40,7 +40,7 @@ function NavContent({ activePath, onItemClick }: { activePath: string; onItemCli
         return (
           <Link key={item.to} to={item.to} onClick={onItemClick}>
             <Button variant={active ? 'secondary' : 'ghost'} className={cn('w-full justify-start', active && 'font-semibold')}>
-              <Icon className="mr-2 size-4" />
+              <Icon />
               {item.label}
             </Button>
           </Link>

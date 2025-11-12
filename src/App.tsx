@@ -40,6 +40,7 @@ import NurseDashboard from './pages/NurseDashboard';
 import DoctorAvailability from './pages/DoctorAvailability';
 import DoctorAppointments from './pages/DoctorAppointments';
 import PatientAppointments from './pages/PatientAppointments';
+import PatientNewAppointment from './pages/PatientNewAppointment';
 
 const App = () => {
   const MainLayout: React.FC = () => {
@@ -327,6 +328,14 @@ const App = () => {
                 element={
                   <RoleRoute allowed={['PACIENTE', 'patient']}>
                     <PatientAppointments />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/patient/appointments/new"
+                element={
+                  <RoleRoute allowed={['PACIENTE', 'patient']}>
+                    <PatientNewAppointment />
                   </RoleRoute>
                 }
               />

@@ -16,9 +16,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import usePatientAppointments from '@/hooks/usePatientAppointments';
+import { useNavigate } from 'react-router-dom';
 
 const PatientAppointments = () => {
   const { appointments, onCancel } = usePatientAppointments();
+  const navigate = useNavigate();
 
   return (
     <Card className="m-5 overflow-x-auto">
@@ -27,7 +29,11 @@ const PatientAppointments = () => {
           <CardTitle>Citas medicas</CardTitle>
           <CardDescription>Tu historial de citas medicas</CardDescription>
         </div>
-        <Button variant="default" className="cursor-pointer">
+        <Button
+          variant="default"
+          className="cursor-pointer"
+          onClick={() => navigate('/patient/appointments/new')}
+        >
           Agendar una nueva cita
         </Button>
       </CardHeader>
