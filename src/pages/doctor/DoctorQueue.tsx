@@ -1,227 +1,286 @@
-import { useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { User, Hourglass, Clock, CheckCircle2, UserX, Play, X as CloseIcon, Megaphone } from 'lucide-react';
+import { useMemo } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  User,
+  Hourglass,
+  Clock,
+  CheckCircle2,
+  UserX,
+  Play,
+  Megaphone,
+  RefreshCw,
+} from 'lucide-react';
+import { useDoctorQueue } from '@/hooks/useDoctorQueue';
 
-// Tipos mínimos (mock). Cambia por tus tipos reales al conectar backend
-type QueueStatus = "waiting" | "in_progress" | "completed" | "no_show";
-type Ticket = {
-  id: string;
-  number: number;         // turno visible (1..n)
-  patientName: string;
-  doctorName: string;
-  status: QueueStatus;
-  etaMinutes?: number;    // estimado
-  appointmentId: string;
-};
-
-// MOCK inicial. Al conectar, reemplaza por fetch a tu backend
-const initialTickets: Ticket[] = [
-  { id: "t1", number: 1, patientName: "Isabella Rossi", doctorName: "Dr. Chen",   status: "in_progress", etaMinutes: undefined, appointmentId: "a1" },
-  { id: "t2", number: 2, patientName: "Juan Perez",      doctorName: "Dr. Chen",   status: "waiting",     etaMinutes: 5,        appointmentId: "a2" },
-  { id: "t3", number: 3, patientName: "Aisha Khan",      doctorName: "Dr. Miller", status: "waiting",     etaMinutes: 15,       appointmentId: "a3" },
-  { id: "t4", number: 4, patientName: "David Smith",     doctorName: "Dr. Chen",   status: "waiting",     etaMinutes: 25,       appointmentId: "a4" },
-  { id: "t5", number: 5, patientName: "Emily White",     doctorName: "Dr. Miller", status: "completed",   etaMinutes: undefined, appointmentId: "a5" },
-];
+type QueueStatus =
+  | 'SCHEDULED'
+  | 'CONFIRMED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'NO_SHOW';
 
 const statusPill = (s: QueueStatus) => {
-  if (s === "in_progress") return { text: "EN ATENCIÓN",  cls: "bg-blue-100 text-blue-800" };
-  if (s === "waiting")     return { text: "EN ESPERA",    cls: "bg-yellow-100 text-yellow-800" };
-  if (s === "completed")   return { text: "ATENDIDO",     cls: "bg-green-100 text-green-800" };
-  return { text: "NO SHOW", cls: "bg-red-100 text-red-800" };
+  if (s === 'IN_PROGRESS')
+    return { text: 'EN ATENCIÓN', cls: 'bg-blue-100 text-blue-800' };
+  if (s === 'CONFIRMED')
+    return { text: 'EN ESPERA', cls: 'bg-yellow-100 text-yellow-800' };
+  if (s === 'COMPLETED')
+    return { text: 'ATENDIDO', cls: 'bg-green-100 text-green-800' };
+  if (s === 'NO_SHOW')
+    return { text: 'NO SHOW', cls: 'bg-red-100 text-red-800' };
+  if (s === 'CANCELLED')
+    return { text: 'CANCELADO', cls: 'bg-gray-100 text-gray-800' };
+  return { text: 'AGENDADO', cls: 'bg-slate-100 text-slate-800' };
 };
 
 export default function DoctorQueue() {
-  const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimer = useRef<number | null>(null);
+  const {
+    queue,
+    current,
+    loading,
+    callNext,
+    completeCurrent,
+    markAsNoShow,
+    refresh,
+  } = useDoctorQueue();
 
-  const reindex = (arr: Ticket[]) => {
-    // reindex visible numbers for waiting + in_progress
-    let n = 1;
-    return arr.map(t => (t.status === "in_progress" || t.status === "waiting") ? { ...t, number: n++ } : t);
+  // Separar citas en espera confirmadas
+  const waiting = useMemo(
+    () => queue.filter(t => t.status === 'CONFIRMED'),
+    [queue]
+  );
+
+  // Calcular posición en la cola
+  const getPosition = (index: number) => {
+    return current ? index + 2 : index + 1; // +2 si hay current (que es posición 1)
   };
 
-  const current = useMemo(() => tickets.find(t => t.status === "in_progress") ?? null, [tickets]);
-  const waiting = useMemo(() => tickets.filter(t => t.status === "waiting").sort((a,b) => a.number - b.number), [tickets]);
-  const doneOrNoShow = useMemo(() => tickets.filter(t => t.status === "completed" || t.status === "no_show"), [tickets]);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), 2200);
+  // Estimar tiempo de espera (30 min por cita)
+  const getETA = (index: number) => {
+    const baseTime = current ? 30 : 0; // Si hay current, suma 30 min
+    return baseTime + index * 30;
   };
-
-  // Acciones mock (luego conecta a tu API)
-  const callNext = () => {
-    setTickets(prev => {
-      if (prev.some(t => t.status === "in_progress")) return prev;
-      const nextWaiting = prev.filter(t => t.status === "waiting").sort((a,b) => a.number - b.number)[0];
-      if (!nextWaiting) return prev;
-      const updated = prev.map<Ticket>(t => t.id === nextWaiting.id ? { ...t, status: "in_progress", etaMinutes: undefined } : t);
-      showToast("Paciente llamado a consulta");
-      return reindex(updated);
-    });
-  };
-
-  const completeCurrent = () => {
-    setTickets(prev => {
-      const cur = prev.find(t => t.status === "in_progress");
-      if (!cur) return prev;
-      const updated = prev.map<Ticket>(t => t.id === cur.id ? { ...t, status: "completed" } : t);
-      showToast("Consulta marcada como completada");
-      return reindex(updated);
-    });
-  };
-
-  const markNoShow = () => {
-    setTickets(prev => {
-      const cur = prev.find(t => t.status === "in_progress");
-      if (!cur) return prev;
-      const updated = prev.map<Ticket>(t => t.id === cur.id ? { ...t, status: "no_show" } : t);
-      showToast("Paciente marcado como no-show");
-      return reindex(updated);
-    });
-  };
-
-  const startFromRow = (id: string) => {
-    setTickets(prev => {
-      if (prev.find(t => t.status === "in_progress")) return prev;
-      const updated = prev.map<Ticket>(t => t.id === id ? { ...t, status: "in_progress", etaMinutes: undefined } : t);
-      showToast("Paciente llamado a consulta");
-      return reindex(updated);
-    });
-  };
-
-  const removeFromView = (id: string) => setTickets(prev => prev.filter(t => t.id !== id));
 
   return (
     <main className="flex-1">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Sala de Espera Virtual</h1>
-          <p className="mt-2 text-base text-gray-500">Cola de pacientes de las citas de hoy.</p>
-        </div>
-
-        <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider w-16">#</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Paciente</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Médico</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Estado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ETA</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Acciones</th>
-                </tr>
-              </thead>
-
-              <AnimatePresence>
-                <tbody className="divide-y divide-slate-200">
-                  {[...(current ? [current] : []), ...waiting].map((t) => {
-                    const pill = statusPill(t.status);
-                    const isCurrent = t.status === "in_progress";
-                    return (
-                      <motion.tr
-                        key={t.id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        className={isCurrent ? "bg-blue-50/60" : ""}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{t.number}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center gap-3">
-                            <User className="h-4 w-4 text-gray-500" />
-                            <span>{t.patientName}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.doctorName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${pill.cls}`}>
-                            {pill.text}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center gap-2">
-                            {isCurrent ? <Hourglass className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                            <span>{isCurrent ? "En curso" : (t.etaMinutes ? `${t.etaMinutes} min` : "—")}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center gap-2">
-                            {isCurrent ? (
-                              <>
-                                <button onClick={completeCurrent} className="flex items-center justify-center size-9 rounded-lg hover:bg-gray-200 text-green-600 transition-colors" title="Marcar completada">
-                                  <CheckCircle2 className="h-5 w-5" />
-                                </button>
-                                <button onClick={markNoShow} className="flex items-center justify-center size-9 rounded-lg hover:bg-gray-200 text-red-600 transition-colors" title="Marcar no-show">
-                                  <UserX className="h-5 w-5" />
-                                </button>
-                              </>
-                            ) : (
-                              <button onClick={() => startFromRow(t.id)} className="flex items-center justify-center size-9 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors" title="Llamar a consulta">
-                                <Play className="h-5 w-5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              </AnimatePresence>
-
-              {doneOrNoShow.length > 0 && (
-                <tbody className="divide-y divide-slate-200">
-                  {doneOrNoShow.map((t) => {
-                    const pill = statusPill(t.status);
-                    return (
-                      <motion.tr key={t.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="opacity-70">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{t.number}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center gap-3">
-                            <User className="h-4 w-4 text-gray-500" />
-                            <span>{t.patientName}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.doctorName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${pill.cls}`}>{pill.text}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center gap-2">
-                            {t.status === "completed" ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <UserX className="h-4 w-4 text-red-600" />}
-                            <span>{t.status === "completed" ? "Completed" : "No-show"}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button onClick={() => removeFromView(t.id)} className="flex items-center justify-center size-9 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors" title="Ocultar de la vista">
-                            <CloseIcon className="h-5 w-5" />
-                          </button>
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              )}
-            </table>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
+              Sala de Espera Virtual
+            </h1>
+            <p className="mt-2 text-base text-gray-500">
+              Cola de pacientes confirmados para hoy
+            </p>
           </div>
-        </div>
-
-        <div className="mt-4 flex items-center gap-2">
-          <button onClick={callNext} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors">
-            <Megaphone className="h-5 w-5" />
-            Llamar siguiente
+          <button
+            onClick={refresh}
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-200 transition-colors"
+            title="Actualizar cola"
+          >
+            <RefreshCw className="h-5 w-5" />
+            Actualizar
           </button>
         </div>
-      </div>
 
-      <div className={`fixed bottom-5 right-5 z-20 max-w-xs items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 text-slate-800 shadow-lg transition-all ${toast ? "flex opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-3"}`}>
-        <div className="inline-flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600">
-          <CheckCircle2 className="h-5 w-5" />
-        </div>
-        <div className="text-sm font-normal">{toast}</div>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin mx-auto w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+            <p className="mt-4 text-sm text-slate-500">Cargando cola...</p>
+          </div>
+        ) : (
+          <>
+            <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider w-16">
+                        #
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Paciente
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Motivo
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Estado
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        ETA
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <AnimatePresence>
+                    <tbody className="divide-y divide-slate-200">
+                      {/* Paciente actual en atención */}
+                      {current && (
+                        <motion.tr
+                          key={current.id}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          className="bg-blue-50/60"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            1
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center gap-3">
+                              <User className="h-4 w-4 text-gray-500" />
+                              <span>Paciente ID: {current.patientId}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            {current.reason || 'Consulta general'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                statusPill(current.status as QueueStatus).cls
+                              }`}
+                            >
+                              {statusPill(current.status as QueueStatus).text}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="flex items-center gap-2">
+                              <Hourglass className="h-4 w-4" />
+                              <span>En curso</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => completeCurrent(current.id)}
+                                className="flex items-center justify-center size-9 rounded-lg hover:bg-gray-200 text-green-600 transition-colors"
+                                title="Marcar completada"
+                              >
+                                <CheckCircle2 className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => markAsNoShow(current.id)}
+                                className="flex items-center justify-center size-9 rounded-lg hover:bg-gray-200 text-red-600 transition-colors"
+                                title="Marcar no-show"
+                              >
+                                <UserX className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      )}
+
+                      {/* Pacientes en espera */}
+                      {waiting.map((appointment, index) => {
+                        const position = getPosition(index);
+                        const eta = getETA(index);
+                        return (
+                          <motion.tr
+                            key={appointment.id}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              {position}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center gap-3">
+                                <User className="h-4 w-4 text-gray-500" />
+                                <span>
+                                  Paciente ID: {appointment.patientId}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              {appointment.reason || 'Consulta general'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                  statusPill(appointment.status as QueueStatus)
+                                    .cls
+                                }`}
+                              >
+                                {
+                                  statusPill(appointment.status as QueueStatus)
+                                    .text
+                                }
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>~{eta} min</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <button
+                                onClick={callNext}
+                                disabled={!!current}
+                                className="flex items-center justify-center size-9 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={
+                                  current
+                                    ? 'Complete la consulta actual primero'
+                                    : 'Llamar a consulta'
+                                }
+                              >
+                                <Play className="h-5 w-5" />
+                              </button>
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+
+                      {/* Estado vacío */}
+                      {!current && waiting.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="px-6 py-12 text-center text-sm text-gray-500"
+                          >
+                            <div className="flex flex-col items-center gap-2">
+                              <User className="h-12 w-12 text-gray-300" />
+                              <p className="font-medium">
+                                No hay pacientes en la cola
+                              </p>
+                              <p className="text-xs">
+                                Los pacientes aparecerán aquí cuando confirmen
+                                su cita
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </AnimatePresence>
+                </table>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                onClick={callNext}
+                disabled={!!current || waiting.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Megaphone className="h-5 w-5" />
+                Llamar siguiente
+              </button>
+              <p className="text-sm text-gray-500">
+                {waiting.length > 0
+                  ? `${waiting.length} paciente(s) en espera`
+                  : 'Sin pacientes en espera'}
+              </p>
+            </div>
+          </>
+        )}
       </div>
     </main>
   );
