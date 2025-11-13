@@ -37,6 +37,12 @@ export async function list(params?: {
   return arr.map(mapFromApi);
 }
 
+export async function myAppointments(): Promise<Appointment[]> {
+  const res = await http.get('/appointments/me');
+  const arr = Array.isArray(res.data) ? res.data : [];
+  return arr.map(mapFromApi);
+}
+
 export async function get(id: string): Promise<Appointment> {
   const res = await http.get(`/appointments/${id}`);
   return mapFromApi(res.data);

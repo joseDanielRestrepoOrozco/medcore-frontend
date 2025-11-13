@@ -7,16 +7,13 @@ import type {
 } from '@/services/appointments.api';
 import * as appointmentsApi from '@/services/appointments.api';
 
-// Reutilizamos el tipo de parámetros del list para no duplicar tipos
-type ListParams = Parameters<typeof appointmentsApi.list>[0];
-
 interface PatientStore {
   appointments: Appointment[];
   loadingAppointments: boolean;
   error: string | null;
 
   // lectura
-  fetchAppointments: (params?: ListParams) => Promise<void>;
+  fetchAppointments: () => Promise<void>;
   setAppointments: (appointments: Appointment[]) => void;
 
   // escritura (sin paginado)
@@ -43,29 +40,23 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
   loadingAppointments: false,
   error: null,
 
-  // Carga lista de citas desde el backend (upcoming/past, rango de fechas, etc.)
-  async fetchAppointments(params) {
+  // Carga lista de citas desde el backend usando /appointments/me
+  async fetchAppointments() {
     if (get().loadingAppointments) return;
 
     set({ loadingAppointments: true, error: null });
 
-    // Por defecto, si no viene patientId, asumimos "me"
-    const effectiveParams: ListParams = { ...(params || {}) };
-    if (!effectiveParams?.patientId) {
-      effectiveParams.patientId = 'me';
-    }
-
     try {
-      const items = await appointmentsApi.list(effectiveParams);
+      const items = await appointmentsApi.myAppointments();
       set({
         appointments: items,
         loadingAppointments: false,
       });
     } catch (err: unknown) {
       if (err instanceof Error) {
-        set({ error: err.message });
+        set({ error: err.message, loadingAppointments: false });
       } else {
-        set({ error: 'Error al cargar las citas' });
+        set({ error: 'Error al cargar las citas', loadingAppointments: false });
       }
     }
   },
@@ -117,7 +108,7 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
           a.id === id ? { ...a, status: 'CANCELLED' } : a
         ),
       }));
-    }catch (err: unknown) {
+    } catch (err: unknown) {
       if (err instanceof Error) {
         set({ error: err.message });
       } else {
