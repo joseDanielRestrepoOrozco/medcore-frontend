@@ -1,12 +1,12 @@
-import AppointmentPatientRow from '@/components/AppointmentPatientRow';
-import { Button } from '@/components/ui/button';
+import AppointmentPatientRow from "@/components/AppointmentPatientRow";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -14,13 +14,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import usePatientAppointments from '@/hooks/usePatientAppointments';
-import { useNavigate } from 'react-router-dom';
+} from "@/components/ui/table";
+import usePatientStore from "@/store/usePatientStore";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const PatientAppointments = () => {
-  const { appointments, onCancel } = usePatientAppointments();
+  const {
+    appointments,
+    loadingAppointments,
+    cancelAppointment,
+    fetchAppointments,
+  } = usePatientStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  if (loadingAppointments) {
+    return;
+  }
 
   return (
     <Card className="m-5 overflow-x-auto">
@@ -32,7 +46,7 @@ const PatientAppointments = () => {
         <Button
           variant="default"
           className="cursor-pointer"
-          onClick={() => navigate('/patient/appointments/new')}
+          onClick={() => navigate("/patient/appointments/new")}
         >
           Agendar una nueva cita
         </Button>
@@ -50,11 +64,11 @@ const PatientAppointments = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {appointments.map(a => (
+              {appointments.map((a) => (
                 <AppointmentPatientRow
                   key={a.id}
                   appointment={a}
-                  onCancel={onCancel}
+                  onCancel={cancelAppointment}
                 />
               ))}
             </TableBody>
