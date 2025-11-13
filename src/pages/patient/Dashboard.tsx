@@ -1,7 +1,7 @@
-import { useAuth } from '@/context/AuthContext';
-import ProfileHeader from '@/components/ProfileHeader';
-import { StatCard, PatientCard } from '@/components/DashboardCards';
-import Orders from '@/components/Orders';
+import { useAuth } from '../context/AuthContext';
+import ProfileHeader from '../components/ProfileHeader';
+import { StatCard, PatientCard } from '../components/DashboardCards';
+import Orders from '../components/Orders';
 // no hooks local
 
 const Dashboard = () => {

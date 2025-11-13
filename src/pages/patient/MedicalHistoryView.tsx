@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api from '@/services/api';
-import { useAuth } from '@/context/AuthContext';
-import type { Diagnostic } from '@/types/Diagnostic';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import type { Diagnostic } from '../../types/Diagnostic';
 
 type Pagination = {
   total: number;

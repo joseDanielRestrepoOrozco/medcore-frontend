@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '@/services/api';
-import type { Diagnostic } from '@/types/Diagnostic';
-import { useAuth } from '@/context/AuthContext';
+import api from '../services/api';
+import type { Diagnostic } from '../types/Diagnostic';
+import { useAuth } from '../context/AuthContext';
 
 const MedicalHistoryEdit = () => {
   const { id } = useParams<{ id: string }>();

@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '@/services/api';
-import { getErrorMessage } from '@/utils/error';
-import DynamicForm from '@/components/DynamicForm';
-import { useAuth } from '@/context/AuthContext';
+import api from '../services/api';
+import { getErrorMessage } from '../utils/error';
+import DynamicForm from '../components/DynamicForm';
+import { useAuth } from '../context/AuthContext';
 
 type Field = {
   key: string;

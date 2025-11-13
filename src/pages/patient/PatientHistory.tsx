@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import api from '@/services/api';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 type Document = {
   id: string;

@@ -43,7 +43,7 @@ const PatientAppointments = () => {
             <TableCaption>Historial de citas</TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead>Médico</TableHead>
+                <TableHead>Doctor</TableHead>
                 <TableHead>Fecha y hora</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Acciones</TableHead>
