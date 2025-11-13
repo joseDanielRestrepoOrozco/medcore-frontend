@@ -23,10 +23,7 @@ export default function AppSidebar({
 
   const panelBase = 'fixed z-50 top-[var(--header-h)] bottom-0 bg-white border-r shadow-sm overflow-y-auto';
 
-  console.log(variant)
-
   if (variant === 'mobile') {
-    console.log(variant);
     return (
       <>
         <div

@@ -8,8 +8,6 @@ const RegisterPatientForm = () => {
   };
 
   const handleSubmit = () => {
-    // TODO: conectar al backend
-    console.log('Registrar paciente', form);
     alert('Paciente registrado (mock)');
   };
 
