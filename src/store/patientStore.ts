@@ -1,7 +1,7 @@
 // medcore-frontend/src/store/patientStore.ts
-import { create } from "zustand";
-import type { Appointment } from "@/types/Appointment";
-import { listAppointments } from "@/services/appointments"; // ajusta el path
+import { create } from 'zustand';
+import type { Appointment } from '@/types/Appointment';
+import { list } from '@/services/appointments.api';
 
 interface PatientStore {
   appointments: Appointment[];
@@ -17,28 +17,21 @@ const usePatientStore = create<PatientStore>((set, get) => ({
   loadingAppointments: null,
 
   // Igual que fetchCatalogs pero sin manejar paginación
-  fetchAppointments: async (force = false, limit = 20) => {
+  fetchAppointments: async (force = false) => {
     const { appointments, loadingAppointments } = get();
 
     // Evita llamadas duplicadas cuando ya hay datos o ya hay una petición en curso
     if (!force && (appointments.length > 0 || loadingAppointments)) return;
 
     set(() => ({
-      loadingAppointments: "list",
+      loadingAppointments: 'list',
     }));
 
     try {
-      const res = await listAppointments(limit);
-
-      if (!res.success) {
-        set(() => ({
-          loadingAppointments: null,
-        }));
-        return;
-      }
+      const appointments = await list();
 
       set(() => ({
-        appointments: res.data.items, // igual que catalogs: res.data.items
+        appointments: appointments,
         loadingAppointments: null,
       }));
     } catch {
@@ -51,14 +44,14 @@ const usePatientStore = create<PatientStore>((set, get) => ({
   removeAppointment: (appointmentId: string) => {
     if (!appointmentId) return;
 
-    set((state) => {
+    set(state => {
       const prev = state.appointments;
 
       // evita setear estado si no hay cambios
-      if (!prev.some((a) => a.id === appointmentId)) return state;
+      if (!prev.some(a => a.id === appointmentId)) return state;
 
       return {
-        appointments: prev.filter((a) => a.id !== appointmentId),
+        appointments: prev.filter(a => a.id !== appointmentId),
       };
     });
   },
@@ -66,12 +59,12 @@ const usePatientStore = create<PatientStore>((set, get) => ({
   upsertAppointment: (appointment: Appointment) => {
     if (!appointment || !appointment.id) return;
 
-    set((state) => {
-      const exists = state.appointments.some((a) => a.id === appointment.id);
+    set(state => {
+      const exists = state.appointments.some(a => a.id === appointment.id);
 
       return {
         appointments: exists
-          ? state.appointments.map((a) =>
+          ? state.appointments.map(a =>
               a.id === appointment.id ? { ...a, ...appointment } : a
             )
           : [appointment, ...state.appointments],

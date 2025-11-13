@@ -11,27 +11,27 @@ import {
 import { useState } from 'react';
 import { Button } from './ui/button';
 
-interface CancelDialogProps {
+interface ConfirmDialogProps {
   appointmentId: string;
   appointmentDate: Date;
-  onCancel: (id: string) => Promise<void>;
+  onConfirm: (id: string) => Promise<void>;
 }
 
-const CancelDialog = ({
+const ConfirmDialog = ({
   appointmentId,
   appointmentDate,
-  onCancel,
-}: CancelDialogProps) => {
+  onConfirm,
+}: ConfirmDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleCancel = async () => {
+  const handleConfirm = async () => {
     setLoading(true);
     try {
-      await onCancel(appointmentId);
+      await onConfirm(appointmentId);
       setOpen(false);
     } catch (error) {
-      console.error('Error al cancelar:', error);
+      console.error('Error al confirmar:', error);
     } finally {
       setLoading(false);
     }
@@ -40,16 +40,19 @@ const CancelDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="cursor-pointer" variant="destructive" size="sm">
-          Cancelar
+        <Button
+          variant="default"
+          size="sm"
+          className="cursor-pointer bg-green-600 hover:bg-green-700 text-white"
+        >
+          Confirmar
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>¿Cancelar cita?</DialogTitle>
+          <DialogTitle>Confirmar asistencia</DialogTitle>
           <DialogDescription>
-            Cancelar una cita es un proceso irreversible y requiere de una
-            anticipación de al menos 4 horas. ¿Estás seguro de esta opción?
+            ¿Estás seguro de que confirmas tu asistencia a esta cita médica?
           </DialogDescription>
         </DialogHeader>
 
@@ -64,10 +67,10 @@ const CancelDialog = ({
                 })}
               </span>
             </div>
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">
-                Esta acción no se puede deshacer. La cita quedará cancelada
-                permanentemente.
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+              <p className="text-sm text-green-800">
+                Al confirmar, te comprometes a asistir a la cita en la fecha y
+                hora indicadas.
               </p>
             </div>
           </div>
@@ -76,16 +79,16 @@ const CancelDialog = ({
         <DialogFooter className="sm:justify-between">
           <DialogClose asChild>
             <Button type="button" variant="ghost" disabled={loading}>
-              No, mantener cita
+              Cancelar
             </Button>
           </DialogClose>
           <Button
             type="button"
-            variant="destructive"
-            onClick={handleCancel}
+            onClick={handleConfirm}
             disabled={loading}
+            className="bg-green-600 hover:bg-green-700"
           >
-            {loading ? 'Cancelando...' : 'Sí, cancelar cita'}
+            {loading ? 'Confirmando...' : 'Sí, confirmar cita'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -93,4 +96,4 @@ const CancelDialog = ({
   );
 };
 
-export default CancelDialog;
+export default ConfirmDialog;

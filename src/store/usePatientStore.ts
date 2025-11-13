@@ -1,11 +1,11 @@
-import { create } from "zustand";
-import type { Appointment } from "@/types/Appointment";
+import { create } from 'zustand';
+import type { Appointment } from '@/types/Appointment';
 import type {
   AppointmentStatus,
   CreateAppointmentDTO,
   RescheduleDTO,
-} from "@/services/appointments.api";
-import * as appointmentsApi from "@/services/appointments.api";
+} from '@/services/appointments.api';
+import * as appointmentsApi from '@/services/appointments.api';
 
 // Reutilizamos el tipo de parámetros del list para no duplicar tipos
 type ListParams = Parameters<typeof appointmentsApi.list>[0];
@@ -52,7 +52,7 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
     // Por defecto, si no viene patientId, asumimos "me"
     const effectiveParams: ListParams = { ...(params || {}) };
     if (!effectiveParams?.patientId) {
-      effectiveParams.patientId = "me";
+      effectiveParams.patientId = 'me';
     }
 
     try {
@@ -61,11 +61,12 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
         appointments: items,
         loadingAppointments: false,
       });
-    } catch (err: any) {
-      set({
-        loadingAppointments: false,
-        error: err?.message ?? "Error al cargar las citas",
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        set({ error: err.message });
+      } else {
+        set({ error: 'Error al cargar las citas' });
+      }
     }
   },
 
@@ -76,14 +77,16 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
   async createAppointment(dto) {
     try {
       const appointment = await appointmentsApi.create(dto);
-      set((state) => ({
+      set(state => ({
         appointments: [appointment, ...state.appointments],
       }));
       return appointment;
-    } catch (err: any) {
-      set({
-        error: err?.message ?? "Error al crear la cita",
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        set({ error: err.message });
+      } else {
+        set({ error: 'Error al crear la cita' });
+      }
       return null;
     }
   },
@@ -91,16 +94,16 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
   async rescheduleAppointment(id, dto) {
     try {
       const updated = await appointmentsApi.reschedule(id, dto);
-      set((state) => ({
-        appointments: state.appointments.map((a) =>
-          a.id === id ? updated : a
-        ),
+      set(state => ({
+        appointments: state.appointments.map(a => (a.id === id ? updated : a)),
       }));
       return updated;
-    } catch (err: any) {
-      set({
-        error: err?.message ?? "Error al reprogramar la cita",
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        set({ error: err.message });
+      } else {
+        set({ error: 'Error al reprogramar la cita' });
+      }
       return null;
     }
   },
@@ -109,31 +112,33 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
     try {
       await appointmentsApi.cancel(id);
       // Reflectimos cancelación localmente (sin volver a pedir al backend)
-      set((state) => ({
-        appointments: state.appointments.map((a) =>
-          a.id === id ? { ...a, status: "CANCELED" } : a
+      set(state => ({
+        appointments: state.appointments.map(a =>
+          a.id === id ? { ...a, status: 'CANCELLED' } : a
         ),
       }));
-    } catch (err: any) {
-      set({
-        error: err?.message ?? "Error al cancelar la cita",
-      });
+    }catch (err: unknown) {
+      if (err instanceof Error) {
+        set({ error: err.message });
+      } else {
+        set({ error: 'Error al cancelar la cita' });
+      }
     }
   },
 
   async confirmAppointment(id) {
     try {
       const updated = await appointmentsApi.confirm(id);
-      set((state) => ({
-        appointments: state.appointments.map((a) =>
-          a.id === id ? updated : a
-        ),
+      set(state => ({
+        appointments: state.appointments.map(a => (a.id === id ? updated : a)),
       }));
       return updated;
-    } catch (err: any) {
-      set({
-        error: err?.message ?? "Error al confirmar la cita",
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        set({ error: err.message });
+      } else {
+        set({ error: 'Error al confirmar una cita' });
+      }
       return null;
     }
   },
@@ -141,16 +146,16 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
   async patchAppointmentStatus(id, status) {
     try {
       const updated = await appointmentsApi.patchStatus(id, status);
-      set((state) => ({
-        appointments: state.appointments.map((a) =>
-          a.id === id ? updated : a
-        ),
+      set(state => ({
+        appointments: state.appointments.map(a => (a.id === id ? updated : a)),
       }));
       return updated;
-    } catch (err: any) {
-      set({
-        error: err?.message ?? "Error al actualizar el estado de la cita",
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        set({ error: err.message });
+      } else {
+        set({ error: 'Error al actualizar el estado de la cita' });
+      }
       return null;
     }
   },
@@ -158,12 +163,12 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
   upsertAppointment(appointment) {
     if (!appointment || !appointment.id) return;
 
-    set((state) => {
-      const exists = state.appointments.some((a) => a.id === appointment.id);
+    set(state => {
+      const exists = state.appointments.some(a => a.id === appointment.id);
 
       return {
         appointments: exists
-          ? state.appointments.map((a) =>
+          ? state.appointments.map(a =>
               a.id === appointment.id ? { ...a, ...appointment } : a
             )
           : [appointment, ...state.appointments],
@@ -174,12 +179,12 @@ export const usePatientStore = create<PatientStore>((set, get) => ({
   removeAppointment(id) {
     if (!id) return;
 
-    set((state) => {
+    set(state => {
       const prev = state.appointments;
-      if (!prev.some((a) => a.id === id)) return state;
+      if (!prev.some(a => a.id === id)) return state;
 
       return {
-        appointments: prev.filter((a) => a.id !== id),
+        appointments: prev.filter(a => a.id !== id),
       };
     });
   },

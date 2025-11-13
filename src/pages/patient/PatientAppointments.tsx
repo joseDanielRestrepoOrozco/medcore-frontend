@@ -1,12 +1,12 @@
-import AppointmentPatientRow from "@/components/AppointmentPatientRow";
-import { Button } from "@/components/ui/button";
+import AppointmentPatientRow from '@/components/AppointmentPatientRow';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -14,18 +14,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import usePatientStore from "@/store/usePatientStore";
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+} from '@/components/ui/table';
+import usePatientStore from '@/store/usePatientStore';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const PatientAppointments = () => {
-  const {
-    appointments,
-    loadingAppointments,
-    cancelAppointment,
-    fetchAppointments,
-  } = usePatientStore();
+  const { appointments, loadingAppointments, fetchAppointments } =
+    usePatientStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,7 +42,7 @@ const PatientAppointments = () => {
         <Button
           variant="default"
           className="cursor-pointer"
-          onClick={() => navigate("/patient/appointments/new")}
+          onClick={() => navigate('/patient/appointments/new')}
         >
           Agendar una nueva cita
         </Button>
@@ -64,12 +60,8 @@ const PatientAppointments = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {appointments.map((a) => (
-                <AppointmentPatientRow
-                  key={a.id}
-                  appointment={a}
-                  onCancel={cancelAppointment}
-                />
+              {appointments.map(a => (
+                <AppointmentPatientRow key={a.id} appointment={a} />
               ))}
             </TableBody>
           </Table>
