@@ -1,7 +1,7 @@
-import ProfileHeader from '../components/ProfileHeader';
-import MiniCalendar from '../components/MiniCalendar';
-import { StatCard } from '../components/DashboardCards';
-import PatientSummaryCards from '../components/PatientSummaryCards';
+import ProfileHeader from '@/components/ProfileHeader';
+import MiniCalendar from '@/components/MiniCalendar';
+import { StatCard } from '@/components/DashboardCards';
+import PatientSummaryCards from '@/components/PatientSummaryCards';
 
 
 const PatientDashboard = () => {

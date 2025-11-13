@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import axios from 'axios';
 
 // Base URL de la API. Preferimos VITE_API_BASE; si no existe, caemos a "/api/v1"
@@ -13,6 +14,10 @@ if (!fromEnv || fromEnv === 'undefined') {
 }
 
 const api = axios.create({ baseURL: API_BASE });
+=======
+import { http } from '@/lib/http';
+const api = http;
+>>>>>>> Stashed changes
 
 // Adjunta el token si existe y ajusta Content-Type para FormData
 api.interceptors.request.use(config => {

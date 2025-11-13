@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 const InfoRow = ({ label, value }: { label: string; value?: string }) => (
   <div className="py-3 border-b border-slate-200 last:border-b-0">

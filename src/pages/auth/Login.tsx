@@ -1,8 +1,15 @@
 import { useState } from 'react';
+<<<<<<< Updated upstream:src/pages/Login.tsx
 import { login } from '../services/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/error';
+=======
+import { login } from '@/services/auth';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { getErrorMessage } from '@/utils/error';
+>>>>>>> Stashed changes:src/pages/auth/Login.tsx
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,6 +43,7 @@ const Login = () => {
   };
 
   const onSubmit = form.handleSubmit(async data => {
+    console.log("data", data)
     setLoading(true);
     setError(null);
     try {

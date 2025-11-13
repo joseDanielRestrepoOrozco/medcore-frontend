@@ -29,4 +29,8 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"]
+  ,
+  "exclude": [
+    "src/pages/appointments/**"
+  ]
 }

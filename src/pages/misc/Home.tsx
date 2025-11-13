@@ -1,5 +1,5 @@
 import React from 'react';
-import team from '../assets/DoctorHome.png'; 
+import team from '@/assets/DoctorHome.png'; 
 
 const ProductCard: React.FC<{
   tag: string;

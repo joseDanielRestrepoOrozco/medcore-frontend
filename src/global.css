@@ -9,6 +9,10 @@
    Primario: #FE7743 | Secundario: #273F4F | Acento: #447D9B | Gris claro: #D7D7D7
 */
 :root {
+  /* Layout constants */
+  --header-h: 96px;        /* h-16 */
+  --sidebar-w: 18rem;      /* w-72 */
+  --sidebar-w-icon: 4rem;  /* w-16 when collapsed */
   /* Layout tokens */
   --navbar-bg: #D7D7D7;
   --sidebar-bg: #D7D7D7;
@@ -84,11 +88,16 @@
     @apply bg-white p-6 rounded shadow;
   }
 
+  /* Base and variants for buttons */
+  .btn { @apply inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors; }
   .btn-primary { @apply px-4 py-2 rounded text-white transition; background-color: var(--mc-primary); }
   .btn-primary:hover { background-color: var(--mc-primary-600); }
-  .btn-secondary { @apply px-4 py-2 rounded text-white transition; background-color: var(--mc-secondary); }
+  /* Secondary aligns with slate palette for contrast in both themes */
+  .btn-secondary { @apply inline-flex items-center justify-center rounded-lg text-sm font-medium bg-slate-800 text-white hover:bg-slate-900; }
   .link-primary { color: var(--mc-accent); }
   .link-primary:hover { text-decoration: underline; }
+  /* Ensure collapse control aligns right if used */
+  [data-sidebar-collapse] { margin-left: auto; }
 }
 
 /* 3. (opcional) estilos globales normales */
@@ -96,6 +105,8 @@ html, body {
   height: 100%;
 }
 body { background-color: var(--mc-bg); margin: 0; }
+/* Global typography */
+body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
