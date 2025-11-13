@@ -20,7 +20,10 @@ function mapFromApi(a: any): Appointment {
     id: String(a?.id ?? a?._id ?? ''),
     doctor: String(a?.doctorName ?? a?.doctorId ?? ''),
     date: asDate,
-    status: String(a?.status ?? 'SCHEDULED'),
+    status: String(a?.status ?? 'SCHEDULED').toUpperCase(),
+    patientId: a?.patientId ? String(a.patientId) : undefined,
+    doctorId: a?.doctorId ? String(a.doctorId) : undefined,
+    reason: a?.reason ? String(a.reason) : undefined,
   };
 }
 
