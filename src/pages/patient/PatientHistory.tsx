@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/services/api";
 
 type Document = {
   id: string;
@@ -51,25 +51,25 @@ const PatientHistory = () => {
         if (!user) return;
         setLoading(true);
         setError(null);
-        const res = await api.get('/diagnostics/my-medical-history', {
+        const res = await api.get("/diagnostics/my-medical-history", {
           params: { page, limit: 5 },
         });
         const raw = (res.data?.data || []) as Array<Record<string, unknown>>;
-        const arr = raw.map(d => ({
-          id: String(d['id'] || ''),
-          when: String(d['diagnosticDate'] || d['createdAt'] || ''),
-          title: String(d['title'] || ''),
-          diagnosis: String(d['diagnosis'] || ''),
-          treatment: String(d['treatment'] || ''),
-          symptoms: String(d['symptoms'] || ''),
-          notes: String(d['notes'] || ''),
+        const arr = raw.map((d) => ({
+          id: String(d["id"] || ""),
+          when: String(d["diagnosticDate"] || d["createdAt"] || ""),
+          title: String(d["title"] || ""),
+          diagnosis: String(d["diagnosis"] || ""),
+          treatment: String(d["treatment"] || ""),
+          symptoms: String(d["symptoms"] || ""),
+          notes: String(d["notes"] || ""),
           documents: (
-            (d['documents'] as Array<Record<string, unknown>>) || []
-          ).map(doc => ({
-            id: String(doc['id'] || ''),
-            filename: String(doc['filename'] || ''),
-            fileType: String(doc['fileType'] || ''),
-            uploadedAt: String(doc['uploadedAt'] || ''),
+            (d["documents"] as Array<Record<string, unknown>>) || []
+          ).map((doc) => ({
+            id: String(doc["id"] || ""),
+            filename: String(doc["filename"] || ""),
+            fileType: String(doc["fileType"] || ""),
+            uploadedAt: String(doc["uploadedAt"] || ""),
           })),
         }));
         setList(arr);
@@ -78,8 +78,8 @@ const PatientHistory = () => {
           setPagination(res.data.pagination);
         }
       } catch (err) {
-        console.error('Error al cargar historia clínica:', err);
-        setError('No se pudo cargar tu historia clínica');
+        console.error("Error al cargar historia clínica:", err);
+        setError("No se pudo cargar tu historia clínica");
       } finally {
         setLoading(false);
       }
@@ -97,21 +97,21 @@ const PatientHistory = () => {
   ) => {
     try {
       const response = await api.get(`/diagnostics/documents/${documentId}`, {
-        responseType: 'blob',
+        responseType: "blob",
       });
 
       // Crear un enlace temporal para descargar el archivo
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', filename);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Error al descargar documento:', err);
-      alert('No se pudo descargar el documento');
+      console.error("Error al descargar documento:", err);
+      alert("No se pudo descargar el documento");
     }
   };
 
@@ -180,7 +180,7 @@ const PatientHistory = () => {
             </div>
           )}
 
-          {list.map(entry => (
+          {list.map((entry) => (
             <div
               key={entry.id}
               className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
@@ -190,7 +190,7 @@ const PatientHistory = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-800">
-                      {entry.title || 'Consulta médica'}
+                      {entry.title || "Consulta médica"}
                     </h3>
                     <div className="flex items-center mt-1 text-sm text-gray-500">
                       <svg
@@ -207,14 +207,14 @@ const PatientHistory = () => {
                         />
                       </svg>
                       {entry.when
-                        ? new Date(entry.when).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
+                        ? new Date(entry.when).toLocaleDateString("es-ES", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
                           })
-                        : '-'}
+                        : "-"}
                     </div>
                   </div>
                   <button
@@ -223,12 +223,12 @@ const PatientHistory = () => {
                     }
                     className="ml-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     aria-label={
-                      expandedId === entry.id ? 'Contraer' : 'Expandir'
+                      expandedId === entry.id ? "Contraer" : "Expandir"
                     }
                   >
                     <svg
                       className={`w-5 h-5 text-gray-600 transition-transform ${
-                        expandedId === entry.id ? 'rotate-180' : ''
+                        expandedId === entry.id ? "rotate-180" : ""
                       }`}
                       fill="none"
                       stroke="currentColor"
@@ -292,7 +292,7 @@ const PatientHistory = () => {
                       </h4>
                     </div>
                     <p className="text-sm text-gray-700">
-                      {entry.diagnosis || '-'}
+                      {entry.diagnosis || "-"}
                     </p>
                   </div>
 
@@ -317,7 +317,7 @@ const PatientHistory = () => {
                       </h4>
                     </div>
                     <p className="text-sm text-gray-700">
-                      {entry.treatment || '-'}
+                      {entry.treatment || "-"}
                     </p>
                   </div>
                 </div>
@@ -372,7 +372,7 @@ const PatientHistory = () => {
                           </h4>
                         </div>
                         <div className="grid gap-2">
-                          {entry.documents.map(doc => (
+                          {entry.documents.map((doc) => (
                             <div
                               key={doc.id}
                               className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
@@ -396,10 +396,10 @@ const PatientHistory = () => {
                                     {doc.filename}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {doc.fileType} •{' '}
+                                    {doc.fileType} •{" "}
                                     {new Date(
                                       doc.uploadedAt
-                                    ).toLocaleDateString('es-ES')}
+                                    ).toLocaleDateString("es-ES")}
                                   </p>
                                 </div>
                               </div>
@@ -449,27 +449,27 @@ const PatientHistory = () => {
         <div className="mt-6 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
           <div className="flex flex-1 justify-between sm:hidden">
             <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={!pagination.hasPreviousPage}
               className={`relative inline-flex items-center rounded-md px-4 py-2 text-sm font-medium ${
                 pagination.hasPreviousPage
-                  ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  ? "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
               }`}
             >
               Anterior
             </button>
             <button
               onClick={() =>
-                setCurrentPage(prev =>
+                setCurrentPage((prev) =>
                   Math.min(pagination.totalPages, prev + 1)
                 )
               }
               disabled={!pagination.hasNextPage}
               className={`relative ml-3 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium ${
                 pagination.hasNextPage
-                  ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  ? "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
               }`}
             >
               Siguiente
@@ -478,18 +478,18 @@ const PatientHistory = () => {
           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
               <p className="text-sm text-gray-700">
-                Mostrando{' '}
+                Mostrando{" "}
                 <span className="font-medium">
                   {(pagination.page - 1) * pagination.limit + 1}
-                </span>{' '}
-                a{' '}
+                </span>{" "}
+                a{" "}
                 <span className="font-medium">
                   {Math.min(
                     pagination.page * pagination.limit,
                     pagination.total
                   )}
-                </span>{' '}
-                de <span className="font-medium">{pagination.total}</span>{' '}
+                </span>{" "}
+                de <span className="font-medium">{pagination.total}</span>{" "}
                 registros
               </p>
             </div>
@@ -499,12 +499,14 @@ const PatientHistory = () => {
                 aria-label="Pagination"
               >
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
                   disabled={!pagination.hasPreviousPage}
                   className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${
                     pagination.hasPreviousPage
-                      ? 'hover:bg-gray-50 cursor-pointer'
-                      : 'cursor-not-allowed opacity-50'
+                      ? "hover:bg-gray-50 cursor-pointer"
+                      : "cursor-not-allowed opacity-50"
                   }`}
                 >
                   <span className="sr-only">Anterior</span>
@@ -526,7 +528,7 @@ const PatientHistory = () => {
                 {Array.from(
                   { length: pagination.totalPages },
                   (_, i) => i + 1
-                ).map(pageNum => {
+                ).map((pageNum) => {
                   // Mostrar solo algunas páginas alrededor de la página actual
                   if (
                     pageNum === 1 ||
@@ -540,8 +542,8 @@ const PatientHistory = () => {
                         onClick={() => setCurrentPage(pageNum)}
                         className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                           pageNum === pagination.page
-                            ? 'z-10 bg-blue-600 text-white focus:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
-                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                            ? "z-10 bg-blue-600 text-white focus:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                            : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                         }`}
                       >
                         {pageNum}
@@ -565,15 +567,15 @@ const PatientHistory = () => {
 
                 <button
                   onClick={() =>
-                    setCurrentPage(prev =>
+                    setCurrentPage((prev) =>
                       Math.min(pagination.totalPages, prev + 1)
                     )
                   }
                   disabled={!pagination.hasNextPage}
                   className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${
                     pagination.hasNextPage
-                      ? 'hover:bg-gray-50 cursor-pointer'
-                      : 'cursor-not-allowed opacity-50'
+                      ? "hover:bg-gray-50 cursor-pointer"
+                      : "cursor-not-allowed opacity-50"
                   }`}
                 >
                   <span className="sr-only">Siguiente</span>

@@ -1,14 +1,14 @@
-import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { getErrorMessage } from '../utils/error';
-import DynamicForm from '../components/DynamicForm';
-import { useAuth } from '../context/AuthContext';
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "@/services/api";
+import { getErrorMessage } from "@/utils/error";
+import DynamicForm from "@/components/DynamicForm";
+import { useAuth } from "@/context/AuthContext";
 
 type Field = {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox';
+  type: "text" | "textarea" | "number" | "date" | "select" | "checkbox";
   placeholder?: string;
   options?: Array<{ value: string; label: string }>;
   required?: boolean;
@@ -24,18 +24,18 @@ type Template = {
 const MedicalHistoryNew = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [patientId, setPatientId] = useState('');
-  const [date, setDate] = useState('');
-  const [summary, setSummary] = useState('');
-  const [diagnosis, setDiagnosis] = useState('');
-  const [treatment, setTreatment] = useState('');
+  const [patientId, setPatientId] = useState("");
+  const [date, setDate] = useState("");
+  const [summary, setSummary] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [treatment, setTreatment] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [title, setTitle] = useState('Consulta médica');
-  const [description, setDescription] = useState('');
-  const [symptoms, setSymptoms] = useState('');
-  const [observations, setObservations] = useState('');
-  const [nextAppointment, setNextAppointment] = useState('');
+  const [title, setTitle] = useState("Consulta médica");
+  const [description, setDescription] = useState("");
+  const [symptoms, setSymptoms] = useState("");
+  const [observations, setObservations] = useState("");
+  const [nextAppointment, setNextAppointment] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -52,15 +52,15 @@ const MedicalHistoryNew = () => {
 
   // Verificar que el usuario no sea administrador
   useEffect(() => {
-    if (user?.role === 'ADMINISTRADOR') {
-      navigate('/dashboard');
+    if (user?.role === "ADMINISTRADOR") {
+      navigate("/dashboard");
     }
   }, [user, navigate]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const pid = params.get('patientId');
-    const tId = params.get('templateId');
+    const pid = params.get("patientId");
+    const tId = params.get("templateId");
     if (pid) setPatientId(pid);
     if (tId) setSelectedTemplateId(tId);
   }, []);
@@ -68,10 +68,10 @@ const MedicalHistoryNew = () => {
   useEffect(() => {
     (async () => {
       try {
-        const r = await api.get('/records/templates');
+        const r = await api.get("/records/templates");
         setTemplates(r.data?.templates || r.data || []);
       } catch (err: unknown) {
-        console.debug('error loading templates', String(err));
+        console.debug("error loading templates", String(err));
       }
     })();
   }, []);
@@ -85,7 +85,7 @@ const MedicalHistoryNew = () => {
         if (!cancelled)
           setSelectedTemplate(res.data?.template || res.data || null);
       } catch (err: unknown) {
-        console.debug('error loading template', String(err));
+        console.debug("error loading template", String(err));
       }
     })();
     return () => {
@@ -102,21 +102,21 @@ const MedicalHistoryNew = () => {
       // Build FormData accordingly. Si hay template, mapear campos conocidos y serializar el resto en 'observations'.
       const fd = new FormData();
       // Mapear campos básicos
-      fd.append('title', selectedTemplate?.title || title);
+      fd.append("title", selectedTemplate?.title || title);
       fd.append(
-        'description',
+        "description",
         selectedTemplate?.description || description || summary
       );
 
       // Campos que podría contener el template
       const known = [
-        'title',
-        'description',
-        'symptoms',
-        'diagnosis',
-        'treatment',
-        'observations',
-        'nextAppointment',
+        "title",
+        "description",
+        "symptoms",
+        "diagnosis",
+        "treatment",
+        "observations",
+        "nextAppointment",
       ];
       const extras: Record<string, unknown> = {};
 
@@ -126,36 +126,36 @@ const MedicalHistoryNew = () => {
           const v = (templateValues as Record<string, unknown>)[k];
           if (known.includes(k)) {
             // nextAppointment debe enviarse como string ISO
-            if (k === 'nextAppointment' && v)
-              fd.append('nextAppointment', String(v));
-            else fd.append(k, String(v ?? ''));
+            if (k === "nextAppointment" && v)
+              fd.append("nextAppointment", String(v));
+            else fd.append(k, String(v ?? ""));
           } else {
             extras[k] = v as unknown;
           }
         }
       } else {
         // sin template usar campos del formulario
-        fd.append('symptoms', symptoms);
-        fd.append('diagnosis', diagnosis);
-        fd.append('treatment', treatment);
-        if (observations) fd.append('observations', observations);
-        if (nextAppointment) fd.append('nextAppointment', nextAppointment);
+        fd.append("symptoms", symptoms);
+        fd.append("diagnosis", diagnosis);
+        fd.append("treatment", treatment);
+        if (observations) fd.append("observations", observations);
+        if (nextAppointment) fd.append("nextAppointment", nextAppointment);
       }
 
       // Observations: si viene observaciones del template o datos extra, los unimos
       const obsFromTemplate = (templateValues as Record<string, unknown>)
         ?.observations;
       if (obsFromTemplate) {
-        fd.append('observations', String(obsFromTemplate));
+        fd.append("observations", String(obsFromTemplate));
       } else if (Object.keys(extras).length > 0) {
         // Solo agregar extras si no se ha añadido observations desde el formulario
         if (!observations) {
-          fd.append('observations', JSON.stringify(extras));
+          fd.append("observations", JSON.stringify(extras));
         }
       }
 
       // Añadir archivos bajo la clave 'documents' (multer espera 'documents')
-      files.forEach(f => fd.append('documents', f, f.name));
+      files.forEach((f) => fd.append("documents", f, f.name));
 
       // POST al endpoint con patientId en la ruta
       await api.post(`/diagnostics/${patientId}`, fd);
@@ -176,12 +176,12 @@ const MedicalHistoryNew = () => {
           <div className="mt-2 flex items-center gap-2">
             <select
               title="Seleccionar template"
-              value={selectedTemplateId ?? ''}
-              onChange={e => setSelectedTemplateId(e.target.value || null)}
+              value={selectedTemplateId ?? ""}
+              onChange={(e) => setSelectedTemplateId(e.target.value || null)}
               className="border rounded px-3 py-2"
             >
               <option value="">-- Ninguno --</option>
-              {templates.map(t => (
+              {templates.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.title || t.id}
                 </option>
@@ -195,7 +195,7 @@ const MedicalHistoryNew = () => {
             <DynamicForm
               template={selectedTemplate}
               initial={{}}
-              onSubmit={async vals => {
+              onSubmit={async (vals) => {
                 setTemplateValues(vals); /* store until final submit */
               }}
             />
@@ -211,7 +211,7 @@ const MedicalHistoryNew = () => {
           <input
             title="ID Paciente"
             value={patientId}
-            onChange={e => setPatientId(e.target.value)}
+            onChange={(e) => setPatientId(e.target.value)}
             placeholder="ID del paciente"
             className="w-full border rounded px-3 py-2"
             required
@@ -223,7 +223,7 @@ const MedicalHistoryNew = () => {
             <input
               title="Título"
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value)}
               className="w-full border rounded px-3 py-2"
             />
           </div>
@@ -233,7 +233,7 @@ const MedicalHistoryNew = () => {
               title="Fecha"
               type="date"
               value={date}
-              onChange={e => setDate(e.target.value)}
+              onChange={(e) => setDate(e.target.value)}
               className="w-full border rounded px-3 py-2"
             />
           </div>
@@ -242,7 +242,7 @@ const MedicalHistoryNew = () => {
           <label className="block text-sm font-medium">Descripción</label>
           <textarea
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.target.value)}
             className="w-full border rounded px-3 py-2 h-20"
             placeholder="Descripción de la consulta"
           />
@@ -251,7 +251,7 @@ const MedicalHistoryNew = () => {
           <label className="block text-sm font-medium">Resumen / Motivo</label>
           <textarea
             value={summary}
-            onChange={e => setSummary(e.target.value)}
+            onChange={(e) => setSummary(e.target.value)}
             className="w-full border rounded px-3 py-2 h-24"
             placeholder="Motivo de consulta, hallazgos, etc."
           />
@@ -260,7 +260,7 @@ const MedicalHistoryNew = () => {
           <label className="block text-sm font-medium">Síntomas</label>
           <textarea
             value={symptoms}
-            onChange={e => setSymptoms(e.target.value)}
+            onChange={(e) => setSymptoms(e.target.value)}
             className="w-full border rounded px-3 py-2 h-24"
             placeholder="Síntomas reportados por el paciente"
           />
@@ -270,7 +270,7 @@ const MedicalHistoryNew = () => {
             <label className="block text-sm font-medium">Diagnóstico</label>
             <input
               value={diagnosis}
-              onChange={e => setDiagnosis(e.target.value)}
+              onChange={(e) => setDiagnosis(e.target.value)}
               className="w-full border rounded px-3 py-2"
               placeholder="Ej. Dermatitis atópica"
             />
@@ -279,7 +279,7 @@ const MedicalHistoryNew = () => {
             <label className="block text-sm font-medium">Tratamiento</label>
             <input
               value={treatment}
-              onChange={e => setTreatment(e.target.value)}
+              onChange={(e) => setTreatment(e.target.value)}
               className="w-full border rounded px-3 py-2"
               placeholder="Indicaciones, medicamentos"
             />
@@ -291,7 +291,7 @@ const MedicalHistoryNew = () => {
           </label>
           <textarea
             value={observations}
-            onChange={e => setObservations(e.target.value)}
+            onChange={(e) => setObservations(e.target.value)}
             className="w-full border rounded px-3 py-2 h-24"
             placeholder="Notas adicionales, observaciones del médico, etc."
           />
@@ -304,7 +304,7 @@ const MedicalHistoryNew = () => {
             title="Próxima cita"
             type="date"
             value={nextAppointment}
-            onChange={e => setNextAppointment(e.target.value)}
+            onChange={(e) => setNextAppointment(e.target.value)}
             className="w-full border rounded px-3 py-2"
           />
         </div>
@@ -313,31 +313,31 @@ const MedicalHistoryNew = () => {
             Adjuntar documentos (PDF/JPG/PNG)
           </label>
           <div
-            onDragEnter={e => {
+            onDragEnter={(e) => {
               e.preventDefault();
               e.stopPropagation();
               setDragOver(true);
             }}
-            onDragOver={e => {
+            onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              e.dataTransfer.dropEffect = 'copy';
+              e.dataTransfer.dropEffect = "copy";
               setDragOver(true);
             }}
-            onDragLeave={e => {
+            onDragLeave={(e) => {
               e.preventDefault();
               e.stopPropagation();
               setDragOver(false);
             }}
-            onDrop={e => {
+            onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
               setDragOver(false);
               const dropped = Array.from(e.dataTransfer.files || []);
-              if (dropped.length) setFiles(prev => [...prev, ...dropped]);
+              if (dropped.length) setFiles((prev) => [...prev, ...dropped]);
             }}
             className={`mt-2 border-2 border-dashed rounded-lg p-6 text-center transition ${
-              dragOver ? 'border-slate-800 bg-slate-50' : 'border-slate-300'
+              dragOver ? "border-slate-800 bg-slate-50" : "border-slate-300"
             }`}
           >
             Arrastra y suelta los archivos aquí o usa el botón para
@@ -356,8 +356,11 @@ const MedicalHistoryNew = () => {
               type="file"
               multiple
               accept=".pdf,.jpg,.jpeg,.png"
-              onChange={e =>
-                setFiles(prev => [...prev, ...Array.from(e.target.files || [])])
+              onChange={(e) =>
+                setFiles((prev) => [
+                  ...prev,
+                  ...Array.from(e.target.files || []),
+                ])
               }
               className="sr-only"
               title="Seleccionar archivos"
@@ -380,7 +383,7 @@ const MedicalHistoryNew = () => {
             disabled={loading}
             className="px-4 py-2 bg-slate-800 text-white rounded"
           >
-            {loading ? 'Guardando...' : 'Guardar'}
+            {loading ? "Guardando..." : "Guardar"}
           </button>
         </div>
       </form>

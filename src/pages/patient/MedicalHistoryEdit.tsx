@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import api from '../services/api';
-import type { Diagnostic } from '../types/Diagnostic';
-import { useAuth } from '../context/AuthContext';
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import api from "@/services/api";
+import type { Diagnostic } from "@/types/Diagnostic";
+import { useAuth } from "@/context/AuthContext";
 
 const MedicalHistoryEdit = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,22 +15,22 @@ const MedicalHistoryEdit = () => {
   const [diagnostic, setDiagnostic] = useState<Diagnostic | null>(null);
 
   // Campos del formulario
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [symptoms, setSymptoms] = useState('');
-  const [diagnosisText, setDiagnosisText] = useState('');
-  const [treatment, setTreatment] = useState('');
-  const [observations, setObservations] = useState('');
-  const [diagnosticDate, setDiagnosticDate] = useState('');
-  const [nextAppointment, setNextAppointment] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [symptoms, setSymptoms] = useState("");
+  const [diagnosisText, setDiagnosisText] = useState("");
+  const [treatment, setTreatment] = useState("");
+  const [observations, setObservations] = useState("");
+  const [diagnosticDate, setDiagnosticDate] = useState("");
+  const [nextAppointment, setNextAppointment] = useState("");
 
   // Para agregar documentos
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
   // Verificar que el usuario no sea administrador
   useEffect(() => {
-    if (user?.role === 'ADMINISTRADOR') {
-      navigate('/dashboard');
+    if (user?.role === "ADMINISTRADOR") {
+      navigate("/dashboard");
     }
   }, [user, navigate]);
 
@@ -44,25 +44,25 @@ const MedicalHistoryEdit = () => {
       setDiagnostic(data);
 
       // Mapear los campos
-      setTitle(data.title || '');
-      setDescription(data.description || '');
-      setSymptoms(data.symptoms || '');
-      setDiagnosisText(data.diagnosis || '');
-      setTreatment(data.treatment || '');
-      setObservations(data.observations || '');
+      setTitle(data.title || "");
+      setDescription(data.description || "");
+      setSymptoms(data.symptoms || "");
+      setDiagnosisText(data.diagnosis || "");
+      setTreatment(data.treatment || "");
+      setObservations(data.observations || "");
       setDiagnosticDate(
         data.diagnosticDate
-          ? new Date(data.diagnosticDate).toISOString().split('T')[0]
-          : ''
+          ? new Date(data.diagnosticDate).toISOString().split("T")[0]
+          : ""
       );
       setNextAppointment(
         data.nextAppointment
-          ? new Date(data.nextAppointment).toISOString().split('T')[0]
-          : ''
+          ? new Date(data.nextAppointment).toISOString().split("T")[0]
+          : ""
       );
     } catch (err) {
-      console.error('Error cargando diagnóstico:', err);
-      setError('No se pudo cargar el diagnóstico');
+      console.error("Error cargando diagnóstico:", err);
+      setError("No se pudo cargar el diagnóstico");
     } finally {
       setLoading(false);
     }
@@ -92,8 +92,8 @@ const MedicalHistoryEdit = () => {
       await api.put(`/diagnostics/${id}`, payload);
       navigate(`/dashboard/medical-history/${diagnostic.patientId}`);
     } catch (err) {
-      console.error('Error actualizando diagnóstico:', err);
-      setError('No se pudo actualizar el diagnóstico');
+      console.error("Error actualizando diagnóstico:", err);
+      setError("No se pudo actualizar el diagnóstico");
     } finally {
       setSaving(false);
     }
@@ -107,13 +107,13 @@ const MedicalHistoryEdit = () => {
     setError(null);
     try {
       const formData = new FormData();
-      Array.from(selectedFiles).forEach(file => {
-        formData.append('documents', file);
+      Array.from(selectedFiles).forEach((file) => {
+        formData.append("documents", file);
       });
 
       await api.post(`/diagnostics/${id}/documents`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
 
@@ -122,45 +122,45 @@ const MedicalHistoryEdit = () => {
       setSelectedFiles(null);
       // Limpiar el input de archivos
       const fileInput = document.getElementById(
-        'file-input'
+        "file-input"
       ) as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
+      if (fileInput) fileInput.value = "";
     } catch (err) {
-      console.error('Error subiendo documentos:', err);
-      setError('No se pudieron subir los documentos');
+      console.error("Error subiendo documentos:", err);
+      setError("No se pudieron subir los documentos");
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeleteDocument = async (docId: string) => {
-    if (!window.confirm('¿Está seguro de eliminar este documento?')) return;
+    if (!window.confirm("¿Está seguro de eliminar este documento?")) return;
 
     try {
       await api.delete(`/diagnostics/documents/${docId}`);
       // Recargar el diagnóstico
       await loadDiagnostic();
     } catch (err) {
-      console.error('Error eliminando documento:', err);
-      setError('No se pudo eliminar el documento');
+      console.error("Error eliminando documento:", err);
+      setError("No se pudo eliminar el documento");
     }
   };
 
   const handlePreview = async (docId: string, filename: string) => {
     try {
       const res = await api.get(`/diagnostics/documents/${docId}`, {
-        responseType: 'blob',
+        responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', filename);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (err) {
-      console.error('Error descargando documento:', err);
-      setError('No se pudo descargar el documento');
+      console.error("Error descargando documento:", err);
+      setError("No se pudo descargar el documento");
     }
   };
 
@@ -179,7 +179,7 @@ const MedicalHistoryEdit = () => {
           <label className="block text-sm font-medium mb-1">Título</label>
           <input
             value={title}
-            onChange={e => setTitle(e.target.value)}
+            onChange={(e) => setTitle(e.target.value)}
             className="w-full border rounded px-3 py-2"
             required
           />
@@ -191,7 +191,7 @@ const MedicalHistoryEdit = () => {
           <input
             type="date"
             value={diagnosticDate}
-            onChange={e => setDiagnosticDate(e.target.value)}
+            onChange={(e) => setDiagnosticDate(e.target.value)}
             className="w-full border rounded px-3 py-2"
             required
           />
@@ -200,7 +200,7 @@ const MedicalHistoryEdit = () => {
           <label className="block text-sm font-medium mb-1">Descripción</label>
           <textarea
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.target.value)}
             className="w-full border rounded px-3 py-2 h-24"
             required
           />
@@ -209,7 +209,7 @@ const MedicalHistoryEdit = () => {
           <label className="block text-sm font-medium mb-1">Síntomas</label>
           <textarea
             value={symptoms}
-            onChange={e => setSymptoms(e.target.value)}
+            onChange={(e) => setSymptoms(e.target.value)}
             className="w-full border rounded px-3 py-2 h-24"
             required
           />
@@ -221,7 +221,7 @@ const MedicalHistoryEdit = () => {
             </label>
             <textarea
               value={diagnosisText}
-              onChange={e => setDiagnosisText(e.target.value)}
+              onChange={(e) => setDiagnosisText(e.target.value)}
               className="w-full border rounded px-3 py-2 h-24"
               required
             />
@@ -232,7 +232,7 @@ const MedicalHistoryEdit = () => {
             </label>
             <textarea
               value={treatment}
-              onChange={e => setTreatment(e.target.value)}
+              onChange={(e) => setTreatment(e.target.value)}
               className="w-full border rounded px-3 py-2 h-24"
               required
             />
@@ -244,7 +244,7 @@ const MedicalHistoryEdit = () => {
           </label>
           <textarea
             value={observations}
-            onChange={e => setObservations(e.target.value)}
+            onChange={(e) => setObservations(e.target.value)}
             className="w-full border rounded px-3 py-2 h-24"
           />
         </div>
@@ -255,7 +255,7 @@ const MedicalHistoryEdit = () => {
           <input
             type="date"
             value={nextAppointment}
-            onChange={e => setNextAppointment(e.target.value)}
+            onChange={(e) => setNextAppointment(e.target.value)}
             className="w-full border rounded px-3 py-2"
           />
         </div>
@@ -265,7 +265,7 @@ const MedicalHistoryEdit = () => {
             disabled={saving}
             className="px-4 py-2 bg-slate-800 text-white rounded disabled:opacity-50"
           >
-            {saving ? 'Guardando...' : 'Guardar cambios'}
+            {saving ? "Guardando..." : "Guardar cambios"}
           </button>
           <button
             type="button"
@@ -289,7 +289,7 @@ const MedicalHistoryEdit = () => {
           <div className="mb-6">
             <h3 className="text-sm font-medium mb-2">Documentos actuales:</h3>
             <div className="space-y-2">
-              {diagnostic.documents.map(doc => (
+              {diagnostic.documents.map((doc) => (
                 <div
                   key={doc.id}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded border"
@@ -297,7 +297,7 @@ const MedicalHistoryEdit = () => {
                   <div className="flex-1">
                     <p className="text-sm font-medium">{doc.filename}</p>
                     <p className="text-xs text-gray-500">
-                      {(doc.fileSize / 1024).toFixed(2)} KB -{' '}
+                      {(doc.fileSize / 1024).toFixed(2)} KB -{" "}
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -333,7 +333,7 @@ const MedicalHistoryEdit = () => {
               id="file-input"
               type="file"
               multiple
-              onChange={e => setSelectedFiles(e.target.files)}
+              onChange={(e) => setSelectedFiles(e.target.files)}
               className="w-full border rounded px-3 py-2"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
             />
@@ -346,7 +346,7 @@ const MedicalHistoryEdit = () => {
             disabled={uploading || !selectedFiles || selectedFiles.length === 0}
             className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
-            {uploading ? 'Subiendo...' : 'Subir documentos'}
+            {uploading ? "Subiendo..." : "Subir documentos"}
           </button>
         </form>
       </div>

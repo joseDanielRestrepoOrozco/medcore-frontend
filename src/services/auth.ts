@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 // Payload types (acepta camelCase o snake_case para compatibilidad)
 export type SignUpPayload = {
@@ -25,7 +25,7 @@ export type AuthUser = {
 };
 
 export type SignUpResponse = {
-  id: AuthUser['id'];
+  id: AuthUser["id"];
   email: string;
   fullname: string;
   status: string;
@@ -53,14 +53,17 @@ export const signUp = (payload: SignUpPayload) => {
     body.current_password = body.currentPassword;
     delete body.currentPassword;
   }
-  return api.post<SignUpResponse>('/auth/sign-up', body);
+  return api.post<SignUpResponse>("/auth/sign-up", body);
 };
 
 export const login = (payload: LoginPayload) =>
-  api.post<LoginResponse>('/auth/log-in', payload);
+  api.post<LoginResponse>("/auth/log-in", payload);
 
 export const verifyEmail = (payload: VerifyEmailPayload) =>
-  api.post<VerifyEmailResponse>('/auth/verify-email', payload);
+  api.post<VerifyEmailResponse>("/auth/verify-email", payload);
 
 export const resendVerificationCode = (payload: ResendVerificationPayload) =>
-  api.post<ResendVerificationResponse>('/auth/resend-verification-code', payload);
+  api.post<ResendVerificationResponse>(
+    "/auth/resend-verification-code",
+    payload
+  );
