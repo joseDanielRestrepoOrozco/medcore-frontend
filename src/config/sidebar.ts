@@ -22,7 +22,7 @@ export const SIDEBAR: Record<RoleKey, Item[]> = {
     { label: 'Inicio', to: '/admin', icon: Home, exact: true },
     { label: 'Usuarios', to: '/admin/usuarios', icon: Users },
     { label: 'Pacientes', to: '/admin/pacientes', icon: UsersRound },
-    { label: 'Carga masiva', to: '/dashboard/documents', icon: ClipboardList },
+    { label: 'Carga masiva', to: '/admin/carga', icon: ClipboardList },
   ],
   MEDICO: [
     { label: 'Inicio', to: '/medico', icon: Home, exact: true },
